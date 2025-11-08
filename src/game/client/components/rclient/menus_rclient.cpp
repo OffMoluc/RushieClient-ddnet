@@ -296,7 +296,7 @@ void CMenus::RenderSettingsRushie(CUIRect MainView)
 
 		// Do Settings Key
 		CKeyInfo Key = CKeyInfo{RCLocalize("Bind Wheel In Spec Key"), "+bindwheel_spec", 0, 0};
-		for(int Mod = 0; Mod < CBinds::MODIFIER_COMBINATION_COUNT; Mod++)
+		for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
 		{
 			for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
 			{
@@ -534,7 +534,7 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	for(auto &Key : gs_aKeys)
 		Key.m_KeyId = Key.m_ModifierCombination = 0;
 
-	for(int Mod = 0; Mod < CBinds::MODIFIER_COMBINATION_COUNT; Mod++)
+	for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
 	{
 		for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
 		{
@@ -1343,7 +1343,7 @@ void CMenus::RenderSettingsRushieRCON(CUIRect MainView)
 	for(auto &Key : gs_aKeys)
 		Key.m_KeyId = Key.m_ModifierCombination = 0;
 
-	for(int Mod = 0; Mod < CBinds::MODIFIER_COMBINATION_COUNT; Mod++)
+	for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
 	{
 		for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
 		{
