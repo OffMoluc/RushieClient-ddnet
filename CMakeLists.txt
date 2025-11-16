@@ -1175,7 +1175,6 @@ set(EXPECTED_DATA
   autoexec_server.cfg
   background_noise.png
   blob.png
-  builtinscripts/sayemoticon.chai
   censorlist.txt
   communityicons/none.png
   countryflags/AD.png
@@ -1908,6 +1907,7 @@ set(EXPECTED_DATA
   skins7/x_ninja.json
   skins7/xmas_hat.png
   strong_weak.png
+  tclient/builtinscripts/sayemoticon.chai
   tclient/fonts/Cabin-Regular.ttf
   tclient/fonts/FreeSansBold.ttf
   tclient/fonts/GoogleSans-Regular.ttf
@@ -2582,6 +2582,7 @@ if(CLIENT)
     components/tclient/bindchat.h
     components/tclient/bindwheel.cpp
     components/tclient/bindwheel.h
+    components/tclient/colored_parts.h
     components/tclient/custom_communities.cpp
     components/tclient/custom_communities.h
     components/tclient/data_version.h
@@ -2696,6 +2697,8 @@ if(CLIENT)
     layer_selector.h
     map_grid.cpp
     map_grid.h
+    map_object.cpp
+    map_object.h
     map_view.cpp
     map_view.h
     mapitems.h
@@ -2703,6 +2706,7 @@ if(CLIENT)
     mapitems/envelope.h
     mapitems/image.cpp
     mapitems/image.h
+    mapitems/layer.cpp
     mapitems/layer.h
     mapitems/layer_front.cpp
     mapitems/layer_front.h

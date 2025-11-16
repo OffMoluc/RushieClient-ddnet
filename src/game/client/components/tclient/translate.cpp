@@ -323,7 +323,7 @@ void CTranslate::ConTranslateId(IConsole::IResult *pResult, void *pUserData)
 void CTranslate::OnConsoleInit()
 {
 	Console()->Register("translate", "?r[name]", CFGFLAG_CLIENT, ConTranslate, this, "Translate last message (of a given name)");
-	Console()->Register("translate_id", "v[id]", CFGFLAG_CLIENT, ConTranslateId, this, "Translate last message of the preson with this id");
+	Console()->Register("translate_id", "v[id]", CFGFLAG_CLIENT, ConTranslateId, this, "Translate last message of the person with this id");
 }
 
 void CTranslate::Translate(int Id, bool ShowProgress)
@@ -390,7 +390,6 @@ void CTranslate::Translate(CChat::CLine &Line, bool ShowProgress)
 {
 	if(m_vJobs.size() > 15)
 	{
-		GameClient()->m_Chat.Echo("Too many ongoing translations!");
 		return;
 	}
 

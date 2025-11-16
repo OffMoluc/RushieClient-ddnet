@@ -1,6 +1,7 @@
 #include <base/log.h>
 #include <base/math.h>
 #include <base/system.h>
+#include <base/types.h>
 
 #include <engine/graphics.h>
 #include <engine/shared/config.h>
@@ -86,6 +87,48 @@ static bool IsFlagSet(int32_t Flags, int n)
 	return (Flags & (1 << n)) != 0;
 }
 
+bool CMenus::DoLine_KeyReader(CUIRect &View, CButtonContainer &ReaderButton, CButtonContainer &ClearButton, const char *pName, const char *pCommand)
+{
+	CBindSlot Bind(0, 0);
+	for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
+	{
+		for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
+		{
+			const char *pBind = GameClient()->m_Binds.Get(KeyId, Mod);
+			if(!pBind[0])
+				continue;
+
+			if(str_comp(pBind, pCommand) == 0)
+			{
+				Bind.m_Key = KeyId;
+				Bind.m_ModifierMask = Mod;
+				break;
+			}
+		}
+	}
+
+	CUIRect KeyButton, KeyLabel;
+	View.HSplitTop(LineSize, &KeyButton, &View);
+	KeyButton.VSplitMid(&KeyLabel, &KeyButton);
+
+	char aBuf[128];
+	str_format(aBuf, sizeof(aBuf), "%s:", pName);
+	Ui()->DoLabel(&KeyLabel, aBuf, FontSize, TEXTALIGN_ML);
+
+	View.HSplitTop(MarginExtraSmall, nullptr, &View);
+
+	const auto Result = GameClient()->m_KeyBinder.DoKeyReader(&ReaderButton, &ClearButton, &KeyButton, Bind, false);
+	if(Result.m_Bind != Bind)
+	{
+		if(Bind.m_Key != KEY_UNKNOWN)
+			GameClient()->m_Binds.Bind(Bind.m_Key, "", false, Bind.m_ModifierMask);
+		if(Result.m_Bind.m_Key != KEY_UNKNOWN)
+			GameClient()->m_Binds.Bind(Result.m_Bind.m_Key, pCommand, false, Result.m_Bind.m_ModifierMask);
+		return true;
+	}
+	return false;
+}
+
 bool CMenus::DoSliderWithScaledValue(const void *pId, int *pOption, const CUIRect *pRect, const char *pStr, int Min, int Max, int Scale, const IScrollbarScale *pScale, unsigned Flags, const char *pSuffix)
 {
 	const bool NoClampValue = Flags & CUi::SCROLLBAR_OPTION_NOCLAMPVALUE;
@@ -93,7 +136,7 @@ bool CMenus::DoSliderWithScaledValue(const void *pId, int *pOption, const CUIRec
 	int Value = *pOption;
 	Min /= Scale;
 	Max /= Scale;
-	// Allow adjustment of slider options when ctrl is pressed (to avoid scrolling, or accidently adjusting the value)
+	// Allow adjustment of slider options when ctrl is pressed (to avoid scrolling, or accidentally adjusting the value)
 	int Increment = std::max(1, (Max - Min) / 35);
 	if(Input()->ModifierIsPressed() && Input()->KeyPress(KEY_MOUSE_WHEEL_UP) && Ui()->MouseInside(pRect))
 	{
@@ -289,7 +332,8 @@ void CMenus::RenderSettingsTClient(CUIRect MainView)
 			continue;
 
 		TabBar.VSplitLeft(TabWidth, &Button, &TabBar);
-		const int Corners = Tab == 0 ? IGraphics::CORNER_L : Tab == NUMBER_OF_TCLIENT_TABS - 1 ? IGraphics::CORNER_R : IGraphics::CORNER_NONE;
+		const int Corners = Tab == 0 ? IGraphics::CORNER_L : Tab == NUMBER_OF_TCLIENT_TABS - 1 ? IGraphics::CORNER_R :
+													 IGraphics::CORNER_NONE;
 		if(DoButton_MenuTab(&s_aPageTabs[Tab], apTabNames[Tab], s_CurCustomTab == Tab, &Button, Corners, nullptr, nullptr, nullptr, nullptr, 4.0f))
 			s_CurCustomTab = Tab;
 	}
@@ -297,7 +341,7 @@ void CMenus::RenderSettingsTClient(CUIRect MainView)
 	MainView.HSplitTop(Margin, nullptr, &MainView);
 
 	if(s_CurCustomTab == TCLIENT_TAB_SETTINGS)
-		RenderSettingsTClientSettngs(MainView);
+		RenderSettingsTClientSettings(MainView);
 	if(s_CurCustomTab == TCLIENT_TAB_BINDCHAT)
 		RenderSettingsTClientChatBinds(MainView);
 	if(s_CurCustomTab == TCLIENT_TAB_BINDWHEEL)
@@ -310,7 +354,7 @@ void CMenus::RenderSettingsTClient(CUIRect MainView)
 		RenderSettingsTClientInfo(MainView);
 }
 
-void CMenus::RenderSettingsTClientSettngs(CUIRect MainView)
+void CMenus::RenderSettingsTClientSettings(CUIRect MainView)
 {
 	CUIRect Column, LeftView, RightView, Button, Label;
 
@@ -396,9 +440,11 @@ void CMenus::RenderSettingsTClientSettngs(CUIRect MainView)
 	static CButtonContainer s_FontDirectoryId;
 	if(Ui()->DoButton_FontIcon(&s_FontDirectoryId, FONT_ICON_FOLDER, 0, &FontDirectory, IGraphics::CORNER_ALL))
 	{
-		Storage()->CreateFolder("data/tclient", IStorage::TYPE_ABSOLUTE);
-		Storage()->CreateFolder("data/tclient/fonts", IStorage::TYPE_ABSOLUTE);
-		Client()->ViewFile("data/tclient/fonts");
+		Storage()->CreateFolder("tclient", IStorage::TYPE_SAVE);
+		Storage()->CreateFolder("tclient/fonts", IStorage::TYPE_SAVE);
+		char aBuf[IO_MAX_PATH_LENGTH];
+		Storage()->GetCompletePath(IStorage::TYPE_SAVE, "tclient/fonts", aBuf, sizeof(aBuf));
+		Client()->ViewFile(aBuf);
 	}
 
 	CUIRect TinyTeeConfig;
@@ -858,43 +904,9 @@ void CMenus::RenderSettingsTClientSettngs(CUIRect MainView)
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcHideFrozenGhosts, TCLocalize("Hide ghosts of frozen players"), &g_Config.m_TcHideFrozenGhosts, &Column, LineSize);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcRenderGhostAsCircle, TCLocalize("Render ghosts as circles"), &g_Config.m_TcRenderGhostAsCircle, &Column, LineSize);
 
-	{
-		static CKeyInfo s_Key = CKeyInfo{TCLocalize("Toggle ghosts key"), "toggle tc_show_others_ghosts 0 1", 0, 0};
-		s_Key.m_ModifierCombination = s_Key.m_KeyId = 0;
-		for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
-		{
-			for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
-			{
-				const char *pBind = GameClient()->m_Binds.Get(KeyId, Mod);
-				if(!pBind[0])
-					continue;
+	static CButtonContainer s_ReaderButtonGhost, s_ClearButtonGhost;
+	DoLine_KeyReader(Column, s_ReaderButtonGhost, s_ClearButtonGhost, TCLocalize("Toggle ghosts key"), "toggle tc_show_others_ghosts 0 1");
 
-				if(str_comp(pBind, s_Key.m_pCommand) == 0)
-				{
-					s_Key.m_KeyId = KeyId;
-					s_Key.m_ModifierCombination = Mod;
-					break;
-				}
-			}
-		}
-
-		CUIRect KeyButton, KeyLabel;
-		Column.HSplitTop(LineSize, &KeyButton, &Column);
-		KeyButton.VSplitMid(&KeyLabel, &KeyButton);
-		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), "%s:", TCLocalize(s_Key.m_pName));
-		Ui()->DoLabel(&KeyLabel, aBuf, 12.0f, TEXTALIGN_ML);
-		int OldId = s_Key.m_KeyId, OldModifierCombination = s_Key.m_ModifierCombination, NewModifierCombination;
-		int NewId = GameClient()->m_KeyBinder.DoKeyReader(&s_Key, &KeyButton, OldId, OldModifierCombination, &NewModifierCombination);
-		if(NewId != OldId || NewModifierCombination != OldModifierCombination)
-		{
-			if(OldId != 0 || NewId == 0)
-				GameClient()->m_Binds.Bind(OldId, "", false, OldModifierCombination);
-			if(NewId != 0)
-				GameClient()->m_Binds.Bind(NewId, s_Key.m_pCommand, false, NewModifierCombination);
-		}
-		Column.HSplitTop(MarginExtraSmall, nullptr, &Column);
-	}
 	s_SectionBoxes.back().h = Column.y - s_SectionBoxes.back().y;
 
 	// ***** Rainbow ***** //
@@ -986,51 +998,16 @@ void CMenus::RenderSettingsTClientSettngs(CUIRect MainView)
 
 	Column.HSplitTop(LineSize * 2.0f, &Button, &Column);
 	if(g_Config.m_TcBgDrawFadeTime == 0)
-		Ui()->DoScrollbarOption(&g_Config.m_TcBgDrawFadeTime, &g_Config.m_TcBgDrawFadeTime, &Button, TCLocalize("Time until strokes dissapear"), 0, 600, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_MULTILINE, TCLocalize(" seconds (never)"));
+		Ui()->DoScrollbarOption(&g_Config.m_TcBgDrawFadeTime, &g_Config.m_TcBgDrawFadeTime, &Button, TCLocalize("Time until strokes disappear"), 0, 600, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_MULTILINE, TCLocalize(" seconds (never)"));
 	else
-		Ui()->DoScrollbarOption(&g_Config.m_TcBgDrawFadeTime, &g_Config.m_TcBgDrawFadeTime, &Button, TCLocalize("Time until strokes dissapear"), 0, 600, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_MULTILINE, TCLocalize(" seconds"));
+		Ui()->DoScrollbarOption(&g_Config.m_TcBgDrawFadeTime, &g_Config.m_TcBgDrawFadeTime, &Button, TCLocalize("Time until strokes disappear"), 0, 600, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_MULTILINE, TCLocalize(" seconds"));
 
 	Column.HSplitTop(LineSize * 2.0f, &Button, &Column);
 	Ui()->DoScrollbarOption(&g_Config.m_TcBgDrawWidth, &g_Config.m_TcBgDrawWidth, &Button, TCLocalize("Width"), 1, 50, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_MULTILINE);
 
-	{
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-		static CKeyInfo s_Key = CKeyInfo{TCLocalize("Draw where mouse is"), "+bg_draw", 0, 0};
-		s_Key.m_ModifierCombination = s_Key.m_KeyId = 0;
-		for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
-		{
-			for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
-			{
-				const char *pBind = GameClient()->m_Binds.Get(KeyId, Mod);
-				if(!pBind[0])
-					continue;
+	static CButtonContainer s_ReaderButtonDraw, s_ClearButtonDraw;
+	DoLine_KeyReader(Column, s_ReaderButtonDraw, s_ClearButtonDraw, TCLocalize("Draw where mouse is"), "+bg_draw");
 
-				if(str_comp(pBind, s_Key.m_pCommand) == 0)
-				{
-					s_Key.m_KeyId = KeyId;
-					s_Key.m_ModifierCombination = Mod;
-					break;
-				}
-			}
-		}
-
-		CUIRect KeyButton, KeyLabel;
-		Column.HSplitTop(LineSize, &KeyButton, &Column);
-		KeyButton.VSplitMid(&KeyLabel, &KeyButton);
-		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), "%s:", TCLocalize(s_Key.m_pName));
-		Ui()->DoLabel(&KeyLabel, aBuf, 12.0f, TEXTALIGN_ML);
-		int OldId = s_Key.m_KeyId, OldModifierCombination = s_Key.m_ModifierCombination, NewModifierCombination;
-		int NewId = GameClient()->m_KeyBinder.DoKeyReader(&s_Key, &KeyButton, OldId, OldModifierCombination, &NewModifierCombination);
-		if(NewId != OldId || NewModifierCombination != OldModifierCombination)
-		{
-			if(OldId != 0 || NewId == 0)
-				GameClient()->m_Binds.Bind(OldId, "", false, OldModifierCombination);
-			if(NewId != 0)
-				GameClient()->m_Binds.Bind(NewId, s_Key.m_pCommand, false, NewModifierCombination);
-		}
-		Column.HSplitTop(MarginExtraSmall, nullptr, &Column);
-	}
 	s_SectionBoxes.back().h = Column.y - s_SectionBoxes.back().y;
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 
@@ -1200,52 +1177,19 @@ void CMenus::RenderSettingsTClientBindWheel(CUIRect MainView)
 	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
 	LeftView.HSplitTop(LineSize, &Label, &LeftView);
 	Ui()->DoLabel(&Label, TCLocalize("The command is ran in console not chat"), FontSize, TEXTALIGN_ML);
-	LeftView.HSplitTop(LineSize, &Label, &LeftView);
-	Ui()->DoLabel(&Label, TCLocalize("Use left mouse to select"), FontSize, TEXTALIGN_ML);
-	LeftView.HSplitTop(LineSize, &Label, &LeftView);
-	Ui()->DoLabel(&Label, TCLocalize("Use right mouse to swap with selected"), FontSize, TEXTALIGN_ML);
-	LeftView.HSplitTop(LineSize, &Label, &LeftView);
-	Ui()->DoLabel(&Label, TCLocalize("Use middle mouse select without copy"), FontSize, TEXTALIGN_ML);
+	LeftView.HSplitTop(LineSize * 0.8f, &Label, &LeftView);
+	Ui()->DoLabel(&Label, TCLocalize("Use left mouse to select"), FontSize * 0.8f, TEXTALIGN_ML);
+	LeftView.HSplitTop(LineSize * 0.8f, &Label, &LeftView);
+	Ui()->DoLabel(&Label, TCLocalize("Use right mouse to swap with selected"), FontSize * 0.8f, TEXTALIGN_ML);
+	LeftView.HSplitTop(LineSize * 0.8f, &Label, &LeftView);
+	Ui()->DoLabel(&Label, TCLocalize("Use middle mouse select without copy"), FontSize * 0.8f, TEXTALIGN_ML);
 
-	// Do Settings Key
-	CKeyInfo Key = CKeyInfo{TCLocalize("Bind Wheel Key"), "+bindwheel", 0, 0};
-	for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
-	{
-		for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
-		{
-			const char *pBind = GameClient()->m_Binds.Get(KeyId, Mod);
-			if(!pBind[0])
-				continue;
+	LeftView.HSplitBottom(LineSize, &LeftView, &Label);
+	static CButtonContainer s_ReaderButtonWheel, s_ClearButtonWheel;
+	DoLine_KeyReader(Label, s_ReaderButtonWheel, s_ClearButtonWheel, TCLocalize("Bind Wheel Key"), "+bindwheel");
 
-			if(str_comp(pBind, Key.m_pCommand) == 0)
-			{
-				Key.m_KeyId = KeyId;
-				Key.m_ModifierCombination = Mod;
-				break;
-			}
-		}
-	}
-
-	CUIRect KeyLabel;
-	LeftView.HSplitBottom(LineSize, &LeftView, &Button);
-	Button.VSplitLeft(120.0f, &KeyLabel, &Button);
-	Button.VSplitLeft(100.0f, &Button, nullptr);
-	char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "%s:", TCLocalize(Key.m_pName));
-
-	Ui()->DoLabel(&KeyLabel, aBuf, FontSize, TEXTALIGN_ML);
-	int OldId = Key.m_KeyId, OldModifierCombination = Key.m_ModifierCombination, NewModifierCombination;
-	int NewId = GameClient()->m_KeyBinder.DoKeyReader((void *)&Key.m_pName, &Button, OldId, OldModifierCombination, &NewModifierCombination);
-	if(NewId != OldId || NewModifierCombination != OldModifierCombination)
-	{
-		if(OldId != 0 || NewId == 0)
-			GameClient()->m_Binds.Bind(OldId, "", false, OldModifierCombination);
-		if(NewId != 0)
-			GameClient()->m_Binds.Bind(NewId, Key.m_pCommand, false, NewModifierCombination);
-	}
-	LeftView.HSplitBottom(LineSize, &LeftView, &Button);
-	Button.w = MainView.w;
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcResetBindWheelMouse, TCLocalize("Reset position of mouse when opening bindwheel"), &g_Config.m_TcResetBindWheelMouse, &Button, LineSize);
+	LeftView.HSplitBottom(LineSize, &LeftView, &Label);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcResetBindWheelMouse, TCLocalize("Reset position of mouse when opening bindwheel"), &g_Config.m_TcResetBindWheelMouse, &Label, LineSize);
 }
 
 void CMenus::RenderSettingsTClientChatBinds(CUIRect MainView)
@@ -1456,7 +1400,7 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 			{
 				// TODO: stop misusing this function
 				// TODO: render the real skin with skin remembering component (to be added)
-				RenderDevSkin(EntryTypeRect.Center(), 35.0f, "defualt", "default", false, 0, 0, 0, false);
+				RenderDevSkin(EntryTypeRect.Center(), 35.0f, "default", "default", false, 0, 0, 0, false);
 			}
 
 			if(str_comp(pEntry->m_aReason, "") != 0)
@@ -1855,7 +1799,7 @@ void CMenus::RenderSettingsTClientStatusBar(CUIRect MainView)
 	RightView.HSplitTop(LineSize, &Label, &RightView);
 	Ui()->DoLabel(&Label, TCLocalize("z = Zoom"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, TCLocalize("_ or \' \' = Space"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, TCLocalize("_ or ' ' = Space"), FontSize, TEXTALIGN_ML);
 	static int s_SelectedItem = -1;
 	static int s_TypeSelectedOld = -1;
 
@@ -2215,8 +2159,8 @@ void CMenus::RenderSettingsTClientProfiles(CUIRect MainView)
 				MaxExtent = MaxSize;
 			TextRender()->TextColor(ColorRGBA(1.0f, 0.0f, 0.0f));
 			TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
-			const auto TextBoudningBox = TextRender()->TextBoundingBox(MaxExtent * 0.8f, FONT_ICON_XMARK);
-			TextRender()->Text(Cross.x + (Cross.w - TextBoudningBox.m_W) / 2.0f, Cross.y + (Cross.h - TextBoudningBox.m_H) / 2.0f, MaxExtent * 0.8f, FONT_ICON_XMARK);
+			const auto TextBoundingBox = TextRender()->TextBoundingBox(MaxExtent * 0.8f, FONT_ICON_XMARK);
+			TextRender()->Text(Cross.x + (Cross.w - TextBoundingBox.m_W) / 2.0f, Cross.y + (Cross.h - TextBoundingBox.m_H) / 2.0f, MaxExtent * 0.8f, FONT_ICON_XMARK);
 			TextRender()->TextColor(TextRender()->DefaultTextColor());
 			TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
 		};
@@ -2459,11 +2403,11 @@ void CMenus::RenderSettingsTClientProfiles(CUIRect MainView)
 	static CListBox s_ListBox;
 	s_ListBox.DoStart(50.0f, ProfileList.size(), MainView.w / 200.0f, 3, s_SelectedProfile, &MainView, true, IGraphics::CORNER_ALL, true);
 
-	static bool s_Indexs[1024];
+	static bool s_Indexes[1024];
 
 	for(size_t i = 0; i < ProfileList.size(); ++i)
 	{
-		CListboxItem Item = s_ListBox.DoNextItem(&s_Indexs[i], s_SelectedProfile >= 0 && (size_t)s_SelectedProfile == i);
+		CListboxItem Item = s_ListBox.DoNextItem(&s_Indexes[i], s_SelectedProfile >= 0 && (size_t)s_SelectedProfile == i);
 		if(!Item.m_Visible)
 			continue;
 
