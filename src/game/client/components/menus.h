@@ -833,6 +833,7 @@ private:
 	void RenderSettingsRushieNameplatesEditor(CUIRect MainView);
 	void RenderSettingsRushieRCON(CUIRect MainView);
 	void RenderSettingsRushieInfo(CUIRect MainView);
+	void RenderSettingsRushieBindWheelSpec(CUIRect MainView);
 
 	const CWarType *m_pRemoveWarType = nullptr;
 	void PopupConfirmRemoveWarType();

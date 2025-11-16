@@ -30,14 +30,6 @@ enum
 	NUMBER_OF_RUSHIE_TABS
 };
 
-typedef struct
-{
-	const char *m_pName;
-	const char *m_pCommand;
-	int m_KeyId;
-	int m_ModifierCombination;
-} CKeyInfo;
-
 using namespace FontIcons;
 
 static float s_Time = 0.0f;
@@ -91,7 +83,7 @@ void CMenus::RenderSettingsRushie(CUIRect MainView)
 
 	static int s_CurCustomTab = 0;
 
-	CUIRect TabBar, LeftView, RightView, Button, Label;
+	CUIRect TabBar, Button;
 	int TabCount = NUMBER_OF_RUSHIE_TABS;
 	for(int Tab = 0; Tab < NUMBER_OF_RUSHIE_TABS; ++Tab)
 	{
@@ -133,206 +125,7 @@ void CMenus::RenderSettingsRushie(CUIRect MainView)
 
 	if(s_CurCustomTab == RCLIENT_TAB_BINDWHEEL)
 	{
-		MainView.HSplitTop(MarginBetweenSections, nullptr, &MainView);
-		MainView.VSplitLeft(MainView.w / 2.1f, &LeftView, &RightView);
-
-		const float Radius = minimum(RightView.w, RightView.h) / 2.0f;
-		vec2 Pos{RightView.x + RightView.w / 2.0f, RightView.y + RightView.h / 2.0f};
-		// Draw Circle
-		Graphics()->TextureClear();
-		Graphics()->QuadsBegin();
-		Graphics()->SetColor(0.0f, 0.0f, 0.0f, 0.3f);
-		Graphics()->DrawCircle(Pos.x, Pos.y, Radius, 64);
-		Graphics()->QuadsEnd();
-
-		static char s_aBindName[BINDWHEEL_MAX_NAME_RCLIENT];
-		static char s_aBindCommand[BINDWHEEL_MAX_CMD_RCLIENT];
-
-		static int s_SelectedBindIndex = -1;
-		int HoveringIndex = -1;
-
-		float MouseDist = distance(Pos, Ui()->MousePos());
-		if(MouseDist < Radius && MouseDist > Radius * 0.25f)
-		{
-			int SegmentCount = GameClient()->m_BindWheelSpec.m_vBinds.size();
-			float SegmentAngle = 2.0f * pi / SegmentCount;
-
-			float HoveringAngle = angle(Ui()->MousePos() - Pos) + SegmentAngle / 2.0f;
-			if(HoveringAngle < 0.0f)
-				HoveringAngle += 2.0f * pi;
-
-			HoveringIndex = (int)(HoveringAngle / (2.0f * pi) * SegmentCount);
-			if(Ui()->MouseButtonClicked(0))
-			{
-				s_SelectedBindIndex = HoveringIndex;
-				str_copy(s_aBindName, GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex].m_aName);
-				str_copy(s_aBindCommand, GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex].m_aCommand);
-			}
-			else if(Ui()->MouseButtonClicked(1) && s_SelectedBindIndex >= 0 && HoveringIndex >= 0 && HoveringIndex != s_SelectedBindIndex)
-			{
-				CBindWheelSpec::CBind BindA = GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex];
-				CBindWheelSpec::CBind BindB = GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex];
-				str_copy(GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex].m_aName, BindB.m_aName);
-				str_copy(GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex].m_aCommand, BindB.m_aCommand);
-				str_copy(GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex].m_aName, BindA.m_aName);
-				str_copy(GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex].m_aCommand, BindA.m_aCommand);
-			}
-			else if(Ui()->MouseButtonClicked(2))
-			{
-				s_SelectedBindIndex = HoveringIndex;
-			}
-		}
-		else if(MouseDist < Radius && Ui()->MouseButtonClicked(0))
-		{
-			s_SelectedBindIndex = -1;
-			str_copy(s_aBindName, "");
-			str_copy(s_aBindCommand, "");
-		}
-
-		const float Theta = pi * 2.0f / GameClient()->m_BindWheelSpec.m_vBinds.size();
-		for(int i = 0; i < static_cast<int>(GameClient()->m_BindWheelSpec.m_vBinds.size()); i++)
-		{
-			float SegmentFontSize = FontSize * 1.1f;
-			if(i == s_SelectedBindIndex)
-			{
-				SegmentFontSize = FontSize * 1.7f;
-				TextRender()->TextColor(ColorRGBA(0.5f, 1.0f, 0.75f, 1.0f));
-			}
-			else if(i == HoveringIndex)
-			{
-				SegmentFontSize = FontSize * 1.35f;
-			}
-
-			const CBindWheelSpec::CBind Bind = GameClient()->m_BindWheelSpec.m_vBinds[i];
-			const float Angle = Theta * i;
-			vec2 TextPos = direction(Angle);
-			TextPos *= Radius * 0.75f;
-
-			float Width = TextRender()->TextWidth(SegmentFontSize, Bind.m_aName);
-			TextPos += Pos;
-			TextPos.x -= Width / 2.0f;
-			TextRender()->Text(TextPos.x, TextPos.y, SegmentFontSize, Bind.m_aName);
-			TextRender()->TextColor(TextRender()->DefaultTextColor());
-		}
-
-		LeftView.HSplitTop(LineSize, &Button, &LeftView);
-		Button.VSplitLeft(100.0f, &Label, &Button);
-		Ui()->DoLabel(&Label, RCLocalize("Name:"), FontSize, TEXTALIGN_ML);
-		static CLineInput s_NameInput;
-		s_NameInput.SetBuffer(s_aBindName, sizeof(s_aBindName));
-		s_NameInput.SetEmptyText(RCLocalize("Name"));
-		Ui()->DoEditBox(&s_NameInput, &Button, EditBoxFontSize);
-
-		LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
-		LeftView.HSplitTop(LineSize, &Button, &LeftView);
-		Button.VSplitLeft(100.0f, &Label, &Button);
-		Ui()->DoLabel(&Label, RCLocalize("Command:"), FontSize, TEXTALIGN_ML);
-		static CLineInput s_BindInput;
-		s_BindInput.SetBuffer(s_aBindCommand, sizeof(s_aBindCommand));
-		s_BindInput.SetEmptyText(RCLocalize("Command"));
-		Ui()->DoEditBox(&s_BindInput, &Button, EditBoxFontSize);
-
-		static CButtonContainer s_AddButton, s_RemoveButton, s_OverrideButton;
-
-		LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
-		LeftView.HSplitTop(LineSize, &Button, &LeftView);
-		if(DoButton_Menu(&s_OverrideButton, RCLocalize("Override Selected"), 0, &Button) && s_SelectedBindIndex >= 0)
-		{
-			CBindWheel::CBind TempBind;
-			if(str_length(s_aBindName) == 0)
-				str_copy(TempBind.m_aName, "*");
-			else
-				str_copy(TempBind.m_aName, s_aBindName);
-
-			str_copy(GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex].m_aName, TempBind.m_aName);
-			str_copy(GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex].m_aCommand, s_aBindCommand);
-		}
-		LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
-		LeftView.HSplitTop(LineSize, &Button, &LeftView);
-		CUIRect ButtonAdd, ButtonRemove;
-		Button.VSplitMid(&ButtonRemove, &ButtonAdd, MarginSmall);
-		if(DoButton_Menu(&s_AddButton, RCLocalize("Add Bind"), 0, &ButtonAdd))
-		{
-			CBindWheel::CBind TempBind;
-			if(str_length(s_aBindName) == 0)
-				str_copy(TempBind.m_aName, "*");
-			else
-				str_copy(TempBind.m_aName, s_aBindName);
-
-			GameClient()->m_BindWheelSpec.AddBind(TempBind.m_aName, s_aBindCommand);
-			s_SelectedBindIndex = static_cast<int>(GameClient()->m_BindWheelSpec.m_vBinds.size()) - 1;
-		}
-		if(DoButton_Menu(&s_RemoveButton, RCLocalize("Remove Bind"), 0, &ButtonRemove) && s_SelectedBindIndex >= 0)
-		{
-			GameClient()->m_BindWheelSpec.RemoveBind(s_SelectedBindIndex);
-			s_SelectedBindIndex = -1;
-		}
-
-		LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
-		LeftView.HSplitTop(LineSize, &Label, &LeftView);
-		Ui()->DoLabel(&Label, RCLocalize("Use left mouse to select"), FontSize, TEXTALIGN_ML);
-		LeftView.HSplitTop(LineSize, &Label, &LeftView);
-		Ui()->DoLabel(&Label, RCLocalize("Use right mouse to swap with selected"), FontSize, TEXTALIGN_ML);
-		LeftView.HSplitTop(LineSize, &Label, &LeftView);
-		Ui()->DoLabel(&Label, RCLocalize("Use middle mouse select without copy"), FontSize, TEXTALIGN_ML);
-		LeftView.HSplitTop(MarginBetweenSections, &Label, &LeftView);
-		LeftView.HSplitTop(LineSize, &Label, &LeftView);
-		TextRender()->TextColor(ColorRGBA(0.53f, 1.00f, 0.53f, 1.0f));
-		Ui()->DoLabel(&Label, RCLocalize("Rclient bindwheel settings"), FontSize, TEXTALIGN_ML);
-		TextRender()->TextColor(TextRender()->DefaultTextColor());
-		LeftView.HSplitTop(LineSize, &Label, &LeftView);
-		Ui()->DoLabel(&Label, RCLocalize("playernickname to enter nickname"), FontSize, TEXTALIGN_ML);
-		{
-			CUIRect Rightoffset;
-			LeftView.VSplitLeft(25.0f, &Label, &Rightoffset);
-			Rightoffset.HSplitTop(LineSize, &Label, &Rightoffset);
-			TextRender()->TextColor(ColorRGBA(1.00f, 0.53f, 0.53f, 1.0f));
-			Ui()->DoLabel(&Label, RCLocalize("Do \"playernickname\" yourself in u need"), FontSize, TEXTALIGN_ML);
-			TextRender()->TextColor(TextRender()->DefaultTextColor());
-		}
-		LeftView.HSplitTop(LineSize, &Label, &LeftView);
-		LeftView.HSplitTop(LineSize, &Label, &LeftView);
-		Ui()->DoLabel(&Label, RCLocalize("playerid to enter id"), FontSize, TEXTALIGN_ML);
-
-		// Do Settings Key
-		CKeyInfo Key = CKeyInfo{RCLocalize("Bind Wheel In Spec Key"), "+bindwheel_spec", 0, 0};
-		for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
-		{
-			for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
-			{
-				const char *pBind = GameClient()->m_Binds.Get(KeyId, Mod);
-				if(!pBind[0])
-					continue;
-
-				if(str_comp(pBind, Key.m_pCommand) == 0)
-				{
-					Key.m_KeyId = KeyId;
-					Key.m_ModifierCombination = Mod;
-					break;
-				}
-			}
-		}
-
-		CUIRect KeyLabel;
-		LeftView.HSplitBottom(LineSize, &LeftView, &Button);
-		Button.VSplitLeft(120.0f, &KeyLabel, &Button);
-		Button.VSplitLeft(100.0f, &Button, nullptr);
-		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), "%s:", RCLocalize(Key.m_pName));
-
-		Ui()->DoLabel(&KeyLabel, aBuf, FontSize, TEXTALIGN_ML);
-		int OldId = Key.m_KeyId, OldModifierCombination = Key.m_ModifierCombination, NewModifierCombination;
-		int NewId = GameClient()->m_KeyBinder.DoKeyReader((void *)&Key.m_pName, &Button, OldId, OldModifierCombination, &NewModifierCombination);
-		if(NewId != OldId || NewModifierCombination != OldModifierCombination)
-		{
-			if(OldId != 0 || NewId == 0)
-				GameClient()->m_Binds.Bind(OldId, "", false, OldModifierCombination);
-			if(NewId != 0)
-				GameClient()->m_Binds.Bind(NewId, Key.m_pCommand, false, NewModifierCombination);
-		}
-		LeftView.HSplitBottom(LineSize, &LeftView, &Button);
-
-		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcResetBindWheelMouse, RCLocalize("Reset position of mouse when opening bindwheel"), &g_Config.m_TcResetBindWheelMouse, &Button, LineSize);
+		RenderSettingsRushieBindWheelSpec(MainView);
 	}
 
 	if(s_CurCustomTab == RCLIENT_TAB_NAMEPLATES_EDITOR)
@@ -493,66 +286,6 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	// Left column - Find/Copy Skin/Player
 	Column = LeftView;
 
-	static CKeyInfo gs_aKeys[] =
-		{
-			{RCLocalize("Unlock mouse in scoreboard"), "+scoreboard_mouse", 0, 0},
-			{RCLocalize("Tracker for spectating player"), "ri_tracker_spectator", 0, 0},
-			{RCLocalize("Dummy pseudo"), "+toggle cl_dummy_hammer 1 0", 0, 0},
-			{RCLocalize("Deepfly"), "+fire;+toggle cl_dummy_hammer 1 0", 0, 0},
-			{RCLocalize("45° bind"), "+ri_45_degrees", 0, 0},
-			{RCLocalize("Small sens bind"), "+ri_small_sens", 0, 0},
-			{RCLocalize("Left jump"), "+jump; +left", 0, 0},
-			{RCLocalize("Right jump"), "+jump; +right", 0, 0},
-			{RCLocalize("Deepfly toggle"), "ri_deepfly_toggle", 0, 0},
-			{RCLocalize("Show edge info"), "ri_toggle_edgeinfo", 0, 0}
-		};
-
-	auto DoSettingsControlsButtons = [&](int Start, int Stop, CUIRect View) {
-		for(int i = Start; i < Stop; i++)
-		{
-			const CKeyInfo &Key = gs_aKeys[i];
-			Column.HSplitTop(20.0f, &Button, &Column);
-			Button.VSplitLeft(210.0f, &Label, &Button);
-
-			char aBuf[64];
-			str_format(aBuf, sizeof(aBuf), "%s:", Localize(Key.m_pName));
-
-			Ui()->DoLabel(&Label, aBuf, 13.0f, TEXTALIGN_ML);
-			int OldId = Key.m_KeyId, OldModifierCombination = Key.m_ModifierCombination, NewModifierCombination;
-			int NewId = GameClient()->m_KeyBinder.DoKeyReader((void *)&Key.m_pName, &Button, OldId, OldModifierCombination, &NewModifierCombination);
-			if(NewId != OldId || NewModifierCombination != OldModifierCombination)
-			{
-				if(OldId != 0 || NewId == 0)
-					GameClient()->m_Binds.Bind(OldId, "", false, OldModifierCombination);
-				if(NewId != 0)
-					GameClient()->m_Binds.Bind(NewId, Key.m_pCommand, false, NewModifierCombination);
-			}
-
-			Column.HSplitTop(2.0f, nullptr, &Column);
-		}
-	};
-	for(auto &Key : gs_aKeys)
-		Key.m_KeyId = Key.m_ModifierCombination = 0;
-
-	for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
-	{
-		for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
-		{
-			const char *pBind = GameClient()->m_Binds.Get(KeyId, Mod);
-			if(!pBind[0])
-				continue;
-
-			for(auto &Key : gs_aKeys)
-			{
-				if(str_comp(pBind, Key.m_pCommand) == 0)
-				{
-					Key.m_KeyId = KeyId;
-					Key.m_ModifierCombination = Mod;
-					break;
-				}
-			}
-		}
-	}
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
 	Ui()->DoLabel(&Label, RCLocalize("Auto Change Player Info"), HeadlineFontSize, TEXTALIGN_MC);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
@@ -683,7 +416,11 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
 	Ui()->DoLabel(&Label, RCLocalize("Scoreboard(Pulse)"), HeadlineFontSize, TEXTALIGN_MC);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoSettingsControlsButtons(0, 1, Column);
+	static CButtonContainer s_ReaderButtonScoreboard, s_ClearButtonScoreboard;
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonScoreboard, s_ClearButtonScoreboard, RCLocalize("Unlock mouse in scoreboard"), "+scoreboard_mouse");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiResetPopupScoreboardOnUntab, RCLocalize("Reset mouse in scoreboard on untab"), &g_Config.m_RiResetPopupScoreboardOnUntab, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiToggleScoreboardMouse, RCLocalize("Toggle mouse unlock in scoreboard"), &g_Config.m_RiToggleScoreboardMouse, &Column, LineSize);
@@ -827,7 +564,7 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(20.0f, &Label, &Column);
 	Ui()->DoScrollbarOption(&g_Config.m_RiHeartSize, &g_Config.m_RiHeartSize, &Label, RCLocalize("Friend heart size"), 0, 500, &CUi::ms_LogarithmicScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiShowmillisecondsTimer, RCLocalize("Show milliseconds in timer"), &g_Config.m_RiShowmillisecondsTimer, &Column, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiShowMilliSecondsTimer, RCLocalize("Show milliseconds in timer"), &g_Config.m_RiShowMilliSecondsTimer, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiShowAfkEmoteInMenu, RCLocalize("Show sleep emote in menu (ONLY CLIENT OTHER DON'T SEE THAT)"), &g_Config.m_RiShowAfkEmoteInMenu, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
@@ -836,9 +573,25 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
 	Ui()->DoLabel(&Label, RCLocalize("Controls"), HeadlineFontSize, TEXTALIGN_MC);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoSettingsControlsButtons(2, 4, Column);
-	DoSettingsControlsButtons(8, 9, Column);
-	DoSettingsControlsButtons(4, 5, Column);
+	static CButtonContainer s_ReaderButtonDummyPseudo, s_ClearButtonDummyPseudo,
+		s_ReaderButtonDeepfly, s_ClearButtonDeepfly,
+		s_ReaderButtonDeepflyToggle, s_ClearButtonDeepflyToggle,
+		s_ReaderButton45Degrees, s_ClearButton45Degrees,
+		s_ReaderButtonSmallSens, s_ClearButtonSmallSens,
+		s_ReaderButtonLeftJump, s_ClearButtonLeftJump,
+		s_ReaderButtonRightJump, s_ClearButtonRightJump;
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonDummyPseudo, s_ClearButtonDummyPseudo, RCLocalize("Dummy pseudo"), "+toggle cl_dummy_hammer 1 0");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonDeepfly, s_ClearButtonDeepfly, RCLocalize("Deepfly"), "+fire;+toggle cl_dummy_hammer 1 0");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonDeepflyToggle, s_ClearButtonDeepflyToggle, RCLocalize("Deepfly toggle"), "ri_deepfly_toggle");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButton45Degrees, s_ClearButton45Degrees, RCLocalize("45° bind"), "+ri_45_degrees");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	{
 		CUIRect Rightoffset;
 		Column.VSplitLeft(25.0f, &Label, &Rightoffset);
@@ -846,7 +599,9 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiToggle45degrees, RCLocalize("Toggle 45 degrees"), &g_Config.m_RiToggle45degrees, &Rightoffset, LineSize);
 		Column.HSplitTop(MarginSmall, nullptr, &Column);
 	}
-	DoSettingsControlsButtons(5, 6, Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonSmallSens, s_ClearButtonSmallSens, RCLocalize("Small sens bind"), "ri_small_sens");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	{
 		CUIRect Rightoffset;
 		Column.VSplitLeft(25.0f, &Label, &Rightoffset);
@@ -854,7 +609,11 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiToggleSmallSens, RCLocalize("Toggle small sens"), &g_Config.m_RiToggleSmallSens, &Rightoffset, LineSize);
 		Column.HSplitTop(MarginSmall, nullptr, &Column);
 	}
-	DoSettingsControlsButtons(6, 8, Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonLeftJump, s_ClearButtonLeftJump, RCLocalize("Left jump"), "+jump; +left");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonRightJump, s_ClearButtonRightJump, RCLocalize("Right jump"), "+jump; +right");
 
 	// Laser Settings
 	Column.HSplitTop(MarginBetweenSections, nullptr, &Column);
@@ -893,7 +652,10 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
 	Ui()->DoLabel(&Label, RCLocalize("Spectator"), HeadlineFontSize, TEXTALIGN_MC);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoSettingsControlsButtons(1, 2, Column);
+	static CButtonContainer s_ReaderButtonSpecPlr, s_ClearButtonSpecPlr;
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonSpecPlr, s_ClearButtonSpecPlr, RCLocalize("Tracker for spectating player"), "ri_tracker_spectator");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
 
 	Column.HSplitTop(MarginBetweenSections, nullptr, &Column);
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
@@ -996,7 +758,11 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
 	Ui()->DoLabel(&Label, RCLocalize("Edge Info"), HeadlineFontSize, TEXTALIGN_MC);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoSettingsControlsButtons(9, 10, Column);
+	static CButtonContainer s_ReaderButtonEdgeInfo, s_ClearButtonEdgeInfo;
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonEdgeInfo, s_ClearButtonEdgeInfo, RCLocalize("Show edge info"), "ri_toggle_edgeinfo");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiEdgeInfoCords, RCLocalize("Show edge info about freeze"), &g_Config.m_RiEdgeInfoCords, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiEdgeInfoJump, RCLocalize("Show edge info about jumps"), &g_Config.m_RiEdgeInfoJump, &Column, LineSize);
@@ -1282,7 +1048,7 @@ void CMenus::RenderSettingsRushieRCON(CUIRect MainView)
 	MainView.VSplitRight(5.0f, &MainView, nullptr);
 	MainView.VSplitLeft(5.0f, nullptr, &MainView);
 
-	CUIRect LeftView, RightView, Button, Label;
+	CUIRect LeftView, RightView, Label;
 
 	// auto DoBindchatDefault = [&](CUIRect &Column, CBindChat::CBindRclient &BindDefault) {
 	// 	Column.HSplitTop(MarginSmall, nullptr, &Column);
@@ -1327,61 +1093,11 @@ void CMenus::RenderSettingsRushieRCON(CUIRect MainView)
 	// Left column - Find/Copy Skin/Player
 	Column = LeftView;
 
-	static CKeyInfo gs_aKeys[] =
-		{
-			{RCLocalize("Admin Panel"), "toggle_adminpanel", 0, 0}};
-
-	auto DoSettingsControlsButtons = [&](int Start, int Stop, CUIRect View) {
-		for(int i = Start; i < Stop; i++)
-		{
-			const CKeyInfo &Key = gs_aKeys[i];
-			Column.HSplitTop(20.0f, &Button, &Column);
-			Button.VSplitLeft(210.0f, &Label, &Button);
-
-			char aBuf[64];
-			str_format(aBuf, sizeof(aBuf), "%s:", Localize(Key.m_pName));
-
-			Ui()->DoLabel(&Label, aBuf, 13.0f, TEXTALIGN_ML);
-			int OldId = Key.m_KeyId, OldModifierCombination = Key.m_ModifierCombination, NewModifierCombination;
-			int NewId = GameClient()->m_KeyBinder.DoKeyReader((void *)&Key.m_pName, &Button, OldId, OldModifierCombination, &NewModifierCombination);
-			if(NewId != OldId || NewModifierCombination != OldModifierCombination)
-			{
-				if(OldId != 0 || NewId == 0)
-					GameClient()->m_Binds.Bind(OldId, "", false, OldModifierCombination);
-				if(NewId != 0)
-					GameClient()->m_Binds.Bind(NewId, Key.m_pCommand, false, NewModifierCombination);
-			}
-
-			Column.HSplitTop(2.0f, nullptr, &Column);
-		}
-	};
-	for(auto &Key : gs_aKeys)
-		Key.m_KeyId = Key.m_ModifierCombination = 0;
-
-	for(int Mod = 0; Mod < KeyModifier::COMBINATION_COUNT; Mod++)
-	{
-		for(int KeyId = 0; KeyId < KEY_LAST; KeyId++)
-		{
-			const char *pBind = GameClient()->m_Binds.Get(KeyId, Mod);
-			if(!pBind[0])
-				continue;
-
-			for(auto &Key : gs_aKeys)
-			{
-				if(str_comp(pBind, Key.m_pCommand) == 0)
-				{
-					Key.m_KeyId = KeyId;
-					Key.m_ModifierCombination = Mod;
-					break;
-				}
-			}
-		}
-	}
-
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
 	Ui()->DoLabel(&Label, RCLocalize("Controls"), HeadlineFontSize, TEXTALIGN_MC);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoSettingsControlsButtons(0, 1, Column);
+	static CButtonContainer s_ReaderButtonRCON, s_ClearButtonRCON;
+	DoLine_KeyReader(Label, s_ReaderButtonRCON, s_ClearButtonRCON, RCLocalize("Admin Panel"), "toggle_adminpanel");
 
 	Column.HSplitTop(MarginBetweenSections, nullptr, &Column);
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
@@ -1401,6 +1117,176 @@ void CMenus::RenderSettingsRushieRCON(CUIRect MainView)
 	ScrollRegion.h = 0.0f;
 	s_ScrollRegion.AddRect(ScrollRegion);
 	s_ScrollRegion.End();
+}
+
+void CMenus::RenderSettingsRushieBindWheelSpec(CUIRect MainView)
+{
+	CUIRect LeftView, RightView, Label, Button;
+	MainView.VSplitLeft(MainView.w / 2.1f, &LeftView, &RightView);
+
+	const float Radius = minimum(RightView.w, RightView.h) / 2.0f;
+	vec2 Center = RightView.Center();
+	// Draw Circle
+	Graphics()->TextureClear();
+	Graphics()->QuadsBegin();
+	Graphics()->SetColor(0.0f, 0.0f, 0.0f, 0.3f);
+	Graphics()->DrawCircle(Center.x, Center.y, Radius, 64);
+	Graphics()->QuadsEnd();
+
+	static char s_aBindName[BINDWHEEL_MAX_NAME_RCLIENT];
+	static char s_aBindCommand[BINDWHEEL_MAX_CMD_RCLIENT];
+
+	static int s_SelectedBindIndex = -1;
+	int HoveringIndex = -1;
+
+	float MouseDist = distance(Center, Ui()->MousePos());
+	if(MouseDist < Radius && MouseDist > Radius * 0.25f)
+	{
+		int SegmentCount = GameClient()->m_BindWheelSpec.m_vBinds.size();
+		float SegmentAngle = 2.0f * pi / SegmentCount;
+
+		float HoveringAngle = angle(Ui()->MousePos() - Center) + SegmentAngle / 2.0f;
+		if(HoveringAngle < 0.0f)
+			HoveringAngle += 2.0f * pi;
+
+		HoveringIndex = (int)(HoveringAngle / (2.0f * pi) * SegmentCount);
+		if(Ui()->MouseButtonClicked(0))
+		{
+			s_SelectedBindIndex = HoveringIndex;
+			str_copy(s_aBindName, GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex].m_aName);
+			str_copy(s_aBindCommand, GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex].m_aCommand);
+		}
+		else if(Ui()->MouseButtonClicked(1) && s_SelectedBindIndex >= 0 && HoveringIndex >= 0 && HoveringIndex != s_SelectedBindIndex)
+		{
+			CBindWheelSpec::CBind BindA = GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex];
+			CBindWheelSpec::CBind BindB = GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex];
+			str_copy(GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex].m_aName, BindB.m_aName);
+			str_copy(GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex].m_aCommand, BindB.m_aCommand);
+			str_copy(GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex].m_aName, BindA.m_aName);
+			str_copy(GameClient()->m_BindWheelSpec.m_vBinds[HoveringIndex].m_aCommand, BindA.m_aCommand);
+		}
+		else if(Ui()->MouseButtonClicked(2))
+		{
+			s_SelectedBindIndex = HoveringIndex;
+		}
+	}
+	else if(MouseDist < Radius && Ui()->MouseButtonClicked(0))
+	{
+		s_SelectedBindIndex = -1;
+		str_copy(s_aBindName, "");
+		str_copy(s_aBindCommand, "");
+	}
+
+	const float Theta = pi * 2.0f / std::max<float>(1.0f, GameClient()->m_BindWheelSpec.m_vBinds.size()); // Prevent divide by 0
+	for(int i = 0; i < static_cast<int>(GameClient()->m_BindWheelSpec.m_vBinds.size()); i++)
+	{
+		float SegmentFontSize = FontSize * 1.1f;
+		if(i == s_SelectedBindIndex)
+		{
+			SegmentFontSize = FontSize * 1.7f;
+			TextRender()->TextColor(ColorRGBA(0.5f, 1.0f, 0.75f, 1.0f));
+		}
+		else if(i == HoveringIndex)
+		{
+			SegmentFontSize = FontSize * 1.35f;
+		}
+
+		const CBindWheelSpec::CBind Bind = GameClient()->m_BindWheelSpec.m_vBinds[i];
+		const float Angle = Theta * i;
+
+		const vec2 Pos = direction(Angle) * (Radius * 0.75f) + Center;
+		const CUIRect Rect = CUIRect{Pos.x - 50.0f, Pos.y - 50.0f, 100.0f, 100.0f};
+		Ui()->DoLabel(&Rect, Bind.m_aName, SegmentFontSize, TEXTALIGN_MC);
+	}
+
+	LeftView.HSplitTop(LineSize, &Button, &LeftView);
+	Button.VSplitLeft(100.0f, &Label, &Button);
+	Ui()->DoLabel(&Label, RCLocalize("Name:"), FontSize, TEXTALIGN_ML);
+	static CLineInput s_NameInput;
+	s_NameInput.SetBuffer(s_aBindName, sizeof(s_aBindName));
+	s_NameInput.SetEmptyText(RCLocalize("Name"));
+	Ui()->DoEditBox(&s_NameInput, &Button, EditBoxFontSize);
+
+	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
+	LeftView.HSplitTop(LineSize, &Button, &LeftView);
+	Button.VSplitLeft(100.0f, &Label, &Button);
+	Ui()->DoLabel(&Label, RCLocalize("Command:"), FontSize, TEXTALIGN_ML);
+	static CLineInput s_BindInput;
+	s_BindInput.SetBuffer(s_aBindCommand, sizeof(s_aBindCommand));
+	s_BindInput.SetEmptyText(RCLocalize("Command"));
+	Ui()->DoEditBox(&s_BindInput, &Button, EditBoxFontSize);
+
+	static CButtonContainer s_AddButton, s_RemoveButton, s_OverrideButton;
+
+	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
+	LeftView.HSplitTop(LineSize, &Button, &LeftView);
+	if(DoButton_Menu(&s_OverrideButton, RCLocalize("Override Selected"), 0, &Button) && s_SelectedBindIndex >= 0)
+	{
+		CBindWheel::CBind TempBind;
+		if(str_length(s_aBindName) == 0)
+			str_copy(TempBind.m_aName, "*");
+		else
+			str_copy(TempBind.m_aName, s_aBindName);
+
+		str_copy(GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex].m_aName, TempBind.m_aName);
+		str_copy(GameClient()->m_BindWheelSpec.m_vBinds[s_SelectedBindIndex].m_aCommand, s_aBindCommand);
+	}
+	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
+	LeftView.HSplitTop(LineSize, &Button, &LeftView);
+	CUIRect ButtonAdd, ButtonRemove;
+	Button.VSplitMid(&ButtonRemove, &ButtonAdd, MarginSmall);
+	if(DoButton_Menu(&s_AddButton, RCLocalize("Add Bind"), 0, &ButtonAdd))
+	{
+		CBindWheel::CBind TempBind;
+		if(str_length(s_aBindName) == 0)
+			str_copy(TempBind.m_aName, "*");
+		else
+			str_copy(TempBind.m_aName, s_aBindName);
+
+		GameClient()->m_BindWheelSpec.AddBind(TempBind.m_aName, s_aBindCommand);
+		s_SelectedBindIndex = static_cast<int>(GameClient()->m_BindWheelSpec.m_vBinds.size()) - 1;
+	}
+	if(DoButton_Menu(&s_RemoveButton, RCLocalize("Remove Bind"), 0, &ButtonRemove) && s_SelectedBindIndex >= 0)
+	{
+		GameClient()->m_BindWheelSpec.RemoveBind(s_SelectedBindIndex);
+		s_SelectedBindIndex = -1;
+	}
+
+	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
+	LeftView.HSplitTop(LineSize, &Label, &LeftView);
+	Ui()->DoLabel(&Label, RCLocalize("The command is ran in console not chat"), FontSize, TEXTALIGN_ML);
+	LeftView.HSplitTop(LineSize * 0.8f, &Label, &LeftView);
+	Ui()->DoLabel(&Label, RCLocalize("Use left mouse to select"), FontSize * 0.8f, TEXTALIGN_ML);
+	LeftView.HSplitTop(LineSize * 0.8f, &Label, &LeftView);
+	Ui()->DoLabel(&Label, RCLocalize("Use right mouse to swap with selected"), FontSize * 0.8f, TEXTALIGN_ML);
+	LeftView.HSplitTop(LineSize * 0.8f, &Label, &LeftView);
+	Ui()->DoLabel(&Label, RCLocalize("Use middle mouse select without copy"), FontSize * 0.8f, TEXTALIGN_ML);
+	LeftView.HSplitTop(MarginBetweenSections, &Label, &LeftView);
+	LeftView.HSplitTop(LineSize, &Label, &LeftView);
+	TextRender()->TextColor(ColorRGBA(0.53f, 1.00f, 0.53f, 1.0f));
+	Ui()->DoLabel(&Label, RCLocalize("Rclient bindwheel settings"), FontSize, TEXTALIGN_ML);
+	TextRender()->TextColor(TextRender()->DefaultTextColor());
+	LeftView.HSplitTop(LineSize, &Label, &LeftView);
+	Ui()->DoLabel(&Label, RCLocalize("playernickname to enter nickname"), FontSize, TEXTALIGN_ML);
+	{
+		CUIRect Rightoffset;
+		LeftView.VSplitLeft(25.0f, &Label, &Rightoffset);
+		Rightoffset.HSplitTop(LineSize, &Label, &Rightoffset);
+		TextRender()->TextColor(ColorRGBA(1.00f, 0.53f, 0.53f, 1.0f));
+		Ui()->DoLabel(&Label, RCLocalize("Do \"playernickname\" yourself in u need"), FontSize, TEXTALIGN_ML);
+		TextRender()->TextColor(TextRender()->DefaultTextColor());
+	}
+	LeftView.HSplitTop(LineSize, &Label, &LeftView);
+	LeftView.HSplitTop(LineSize, &Label, &LeftView);
+	Ui()->DoLabel(&Label, RCLocalize("playerid to enter id"), FontSize, TEXTALIGN_ML);
+
+
+	LeftView.HSplitBottom(LineSize, &LeftView, &Label);
+	static CButtonContainer s_ReaderButtonSpecWheel, s_ClearButtonSpecWheel;
+	DoLine_KeyReader(Label, s_ReaderButtonSpecWheel, s_ClearButtonSpecWheel, RCLocalize("Bind Wheel In Spec Key"), "+bindwheel_spec");
+
+	LeftView.HSplitBottom(LineSize, &LeftView, &Label);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcResetBindWheelMouse, RCLocalize("Reset position of mouse when opening bindwheel"), &g_Config.m_TcResetBindWheelMouse, &Label, LineSize);
 }
 
 bool CMenus::DoFloatScrollBar(const void *pId, int *pOption, const CUIRect *pRect, const char *pStr, int Min, int Max, int DivideBy, const IScrollbarScale *pScale, unsigned Flags, const char *pSuffix)
