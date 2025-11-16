@@ -124,7 +124,7 @@ public:
 	// Regex
 	static std::vector<std::string> SplitRegex(const char *aboba);
 	static std::vector<std::string> SplitWords(const char *MSG);
-	Regex m_RegexSplitedPlayer;
+	Regex m_RegexSplitPlayer;
 };
 
 #endif

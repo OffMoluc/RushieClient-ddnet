@@ -1657,7 +1657,7 @@ const char *CChat::FilterText(const char *pMessage, int ClientId, bool IsChat)
 	s_aFilteredMessage[0] = '\0';
 	if(g_Config.m_RiRegexPlayerWhitelist[0] && ClientId >= 0)
 	{
-		auto &RePlr = GameClient()->m_RClient.m_RegexSplitedPlayer;
+		auto &RePlr = GameClient()->m_RClient.m_RegexSplitPlayer;
 		if(RePlr.error().empty() && RePlr.test(GameClient()->m_aClients[ClientId].m_aName))
 			return pMessage;
 	}

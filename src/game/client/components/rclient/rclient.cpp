@@ -56,7 +56,7 @@ void CRClient::OnConsoleInit()
 					log_error("rclient", "Invalid regex: %s", Re.error().c_str());
 					return;
 				}
-				((CRClient *)pUserData)->m_RegexSplitedPlayer = std::move(Re);
+				((CRClient *)pUserData)->m_RegexSplitPlayer = std::move(Re);
 			}
 			pfnCallback(pResult, pCallbackUserData);
 		},
@@ -536,15 +536,15 @@ void CRClient::FinishSearchMapInfo()
 			char aBuf[256];
 			if(Points.type == json_integer && Stars.type == json_integer)
 			{
-				int PointsFormated = Points.u.integer;
-				int StarsFormated = Stars.u.integer;
-				int StarsFormatedMinus = 5 - Stars.u.integer;
+				int PointsFormatted = Points.u.integer;
+				int StarsFormatted = Stars.u.integer;
+				int StarsFormattedMinus = 5 - Stars.u.integer;
 				char aStars[16] = {0};
-				for(int s = 0; s < StarsFormated; s++)
+				for(int s = 0; s < StarsFormatted; s++)
 					str_append(aStars, "★", sizeof(aStars));
-				for(int s = 0; s < StarsFormatedMinus; s++)
+				for(int s = 0; s < StarsFormattedMinus; s++)
 					str_append(aStars, "✰", sizeof(aStars));
-				str_format(aBuf, sizeof(aBuf), "Map: %s, Points: %i, Difficulty: %s %s", pMapName, PointsFormated, pDifficulty, aStars);
+				str_format(aBuf, sizeof(aBuf), "Map: %s, Points: %i, Difficulty: %s %s", pMapName, PointsFormatted, pDifficulty, aStars);
 				GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "Rushie", aBuf);
 				GameClient()->Echo(aBuf);
 			}
@@ -1326,7 +1326,7 @@ void CRClient::ConTargetPlayerPosReset(IConsole::IResult *pResult, void *pUserDa
 		pSelf->GameClient()->m_RClient.TargetPositionNickname[i][0] = '\0';
 	}
 	pSelf->GameClient()->m_RClient.TargetCount = 0;
-	pSelf->GameClient()->Echo("Target list resetted");
+	pSelf->GameClient()->Echo("Target list reset");
 }
 void CRClient::ConTargetPlayerPosRemove(IConsole::IResult *pResult, void *pUserData)
 {

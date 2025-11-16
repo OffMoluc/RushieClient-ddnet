@@ -17,7 +17,7 @@ MACRO_CONFIG_INT(RiMultipleReplacementChar, ri_multiple_replacement_char, 1, 0, 
 MACRO_CONFIG_STR(RiBlockedContentReplacementChar, ri_blocked_content_replacement_char, 64, "*", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Character used to replace blocked content")
 MACRO_CONFIG_STR(RiRegexPlayerWhitelist, ri_regex_player_whitelist, 512, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Chat filer whitelist")
 MACRO_CONFIG_INT(RiFilterChangeWholeWord, ri_filter_change_whole_word, 1, 0, 2, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Change whole word to replacement character")
-MACRO_CONFIG_STR(RiBlockedContentPartialReplacementChar, ri_blocked_content_partical_replacement_char, 64, "*", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Character used to replace partical blocked content")
+MACRO_CONFIG_STR(RiBlockedContentPartialReplacementChar, ri_blocked_content_partial_replacement_char, 64, "*", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Character used to replace partial blocked content")
 
 //Scoreboard
 MACRO_CONFIG_INT(RiResetPopupScoreboardOnUntab, ri_reset_popup_scoreboard_on_untab, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Reset popup scoreboard on untab")
@@ -43,7 +43,7 @@ MACRO_CONFIG_INT(RiPrevInpMousesensSmallsens, ri_prev_inp_mousesens_small_sens, 
 MACRO_CONFIG_INT(RiToggleSmallSens, ri_toggle_small_sens, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Toggle small sens bind or not")
 
 //Hud
-MACRO_CONFIG_INT(RiShowMiliSecondsTimer, ri_show_miliseconds_timer, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show milliseconds in game timer")
+MACRO_CONFIG_INT(RiShowmillisecondsTimer, ri_show_milliseconds_timer, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show milliseconds in game timer")
 MACRO_CONFIG_INT(RiHeartSize, ri_heart_size, 75, 0, 500, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Edit size of friend heart")
 MACRO_CONFIG_INT(RiShowAfkEmoteInMenu, ri_show_afk_emote_menu, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Shows afk emote when player in menu (only client)")
 
@@ -60,11 +60,11 @@ MACRO_CONFIG_INT(RiFireDetectionSize, ri_fire_detection_size, 30, -50, 100, CFGF
 MACRO_CONFIG_INT(RiShowHook, ri_show_hook, 0, 0, 3, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show Hook in nameplates (0=off, 1 = other players', 2 = everyone, 3 = only your own)")
 MACRO_CONFIG_INT(RiHookDetectionSize, ri_hook_detection_size, 30, -50, 100, CFGFLAG_SAVE | CFGFLAG_CLIENT, "Size of hook detection icons")
 MACRO_CONFIG_STR(RiNamePlateScheme, ri_nameplate_scheme, 32, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "The order in which to show nameplate items (p=ping i=ignore m=ID n=name c=clan d=direction f=friend h=hook r=reason s=skin H=HookName F=FireName l=newline)")
-MACRO_CONFIG_INT(RiShowFireDynamic, ri_show_fire_dynamic, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show Fire in nameplates will dynamicly change pos")
-MACRO_CONFIG_INT(RiShowHookDynamic, ri_show_fire_dynamic, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show Hook in nameplates will dynamicly change pos")
+MACRO_CONFIG_INT(RiShowFireDynamic, ri_show_fire_dynamic, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show Fire in nameplates will dynamically change pos")
+MACRO_CONFIG_INT(RiShowHookDynamic, ri_show_fire_dynamic, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show Hook in nameplates will dynamically change pos")
 MACRO_CONFIG_INT(RiShowRclientIndicator, ri_show_rclient_indicator, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show Rclient player indicator in nameplates")
 MACRO_CONFIG_INT(RiRclientIndicatorSize, ri_rclient_indicator_size, 30, -50, 100, CFGFLAG_SAVE | CFGFLAG_CLIENT, "Size of rclient indicator icons")
-MACRO_CONFIG_INT(RiShowIndicatorDynamic, ri_show_indicator_dynamic, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Rclient indicator in nameplates will dynamicly change pos")
+MACRO_CONFIG_INT(RiShowIndicatorDynamic, ri_show_indicator_dynamic, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Rclient indicator in nameplates will dynamically change pos")
 MACRO_CONFIG_INT(RiRclientIndicatorAboveSelf, ri_rclient_indicator_above_self, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show Rclient indicator above you")
 
 //Changed TClient
@@ -95,7 +95,7 @@ MACRO_CONFIG_STR(RiDiscordOfflineStatus, ri_discord_offline_status, 25, "Offline
 // RCON
 MACRO_CONFIG_INT(RiPlaySounds, ri_play_sounds, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Plays sound when do command")
 
-//Egde helper
+//Edge helper
 MACRO_CONFIG_COL(RiEdgeInfoColorFreeze, ri_edge_info_color_freeze, 9930605, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Freeze color in edge info")
 MACRO_CONFIG_COL(RiEdgeInfoColorKill, ri_edge_info_color_kill, 65461, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Kill color in edge info")
 MACRO_CONFIG_COL(RiEdgeInfoColorSafe, ri_edge_info_color_safe, 5594535, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Safe color in edge info")

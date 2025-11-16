@@ -30,6 +30,7 @@ extend-ignore-re = [
 	'datas',
 	'iy',
 	'ba',
+	'trackres',
 	'cl_nameplates_ids_seperate_line',
 	'0x510E527FUL',
 	'I\*\*nteger',

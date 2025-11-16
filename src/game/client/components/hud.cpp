@@ -147,7 +147,7 @@ void CHud::RenderGameTimer()
 		else
 			Time = (float)(Client()->GameTick(g_Config.m_ClDummy) - GameClient()->m_Snap.m_pGameInfoObj->m_RoundStartTick) / Client()->GameTickSpeed();
 
-		str_time((int64_t)(Time * 100), g_Config.m_RiShowMiliSecondsTimer ? TIME_DAYS_CENTISECS : TIME_DAYS, aBuf, sizeof(aBuf));
+		str_time((int64_t)(Time * 100), g_Config.m_RiShowmillisecondsTimer ? TIME_DAYS_CENTISECS : TIME_DAYS, aBuf, sizeof(aBuf));
 		float FontSize = 10.0f;
 		static float s_TextWidthM = TextRender()->TextWidth(FontSize, "00:00", -1, -1.0f);
 		static float s_TextWidthH = TextRender()->TextWidth(FontSize, "00:00:00", -1, -1.0f);
@@ -159,7 +159,7 @@ void CHud::RenderGameTimer()
 		static float s_TextWidth0DwC = TextRender()->TextWidth(FontSize, "0d 00:00:00.00", -1, -1.0f);
 		static float s_TextWidth00DwC = TextRender()->TextWidth(FontSize, "00d 00:00:00.00", -1, -1.0f);
 		static float s_TextWidth000DwC = TextRender()->TextWidth(FontSize, "000d 00:00:00.00", -1, -1.0f);
-		float w = (!g_Config.m_RiShowMiliSecondsTimer ? (Time >= 3600 * 24 * 100 ? s_TextWidth000D : Time >= 3600 * 24 * 10 ? s_TextWidth00D : Time >= 3600 * 24 ? s_TextWidth0D : Time >= 3600 ? s_TextWidthH : s_TextWidthM) : (Time >= 3600 * 24 * 100 ? s_TextWidth000DwC : Time >= 3600 * 24 * 10 ? s_TextWidth00DwC : Time >= 3600 * 24 ? s_TextWidth0DwC : Time >= 3600 ? s_TextWidthHwC : s_TextWidthMwC));
+		float w = (!g_Config.m_RiShowmillisecondsTimer ? (Time >= 3600 * 24 * 100 ? s_TextWidth000D : Time >= 3600 * 24 * 10 ? s_TextWidth00D : Time >= 3600 * 24 ? s_TextWidth0D : Time >= 3600 ? s_TextWidthH : s_TextWidthM) : (Time >= 3600 * 24 * 100 ? s_TextWidth000DwC : Time >= 3600 * 24 * 10 ? s_TextWidth00DwC : Time >= 3600 * 24 ? s_TextWidth0DwC : Time >= 3600 ? s_TextWidthHwC : s_TextWidthMwC));
 		// last 60 sec red, last 10 sec blink
 		if(GameClient()->m_Snap.m_pGameInfoObj->m_TimeLimit && Time <= 60 && (GameClient()->m_Snap.m_pGameInfoObj->m_WarmupTimer <= 0))
 		{

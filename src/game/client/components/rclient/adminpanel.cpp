@@ -28,7 +28,7 @@ struct SAdminPanelProperties
 	static constexpr float ms_ItemSpacing = 2.0f;
 	static constexpr float ms_GroupSpacing = 5.0f;
 
-	static constexpr float ms_RconActionHight = 25.0f;
+	static constexpr float ms_RconActionHeight = 25.0f;
 	static constexpr float ms_RconActionWidth = 75.0f;
 	static constexpr float ms_ReadyButtonsWidth = 80.0f;
 	static constexpr float ms_RconTimersWidth = 50.0f;
@@ -431,7 +431,7 @@ void CAdminPanel::RenderPlayerPanelPopUpActionButtons(CUIRect *pBase)
 	CUIRect Container, Action;
 
 	pBase->HSplitTop(SAdminPanelProperties::ms_ItemSpacing, nullptr, pBase);
-	pBase->HSplitTop(SAdminPanelProperties::ms_RconActionHight, &Container, pBase);
+	pBase->HSplitTop(SAdminPanelProperties::ms_RconActionHeight, &Container, pBase);
 
 	float ActionSpacing = (pBase->w - (4 * SAdminPanelProperties::ms_RconActionWidth)) / 3;
 
@@ -672,7 +672,7 @@ void CAdminPanel::RenderPlayerPanelPopUpReadyButtons(CUIRect *pBase)
 
 	// Calculate the maximum height needed for the columns
 	char aBuf[128];
-	float MaxHeight = SAdminPanelProperties::ms_ButtonHeight + (3 * (SAdminPanelProperties::ms_RconActionHight + SAdminPanelProperties::ms_ItemSpacing));
+	float MaxHeight = SAdminPanelProperties::ms_ButtonHeight + (3 * (SAdminPanelProperties::ms_RconActionHeight + SAdminPanelProperties::ms_ItemSpacing));
 	CUIRect ReadyButtonsArea;
 	// Reserve a horizontal slice for this entire section
 	pBase->HSplitTop(MaxHeight, &ReadyButtonsArea, pBase);
@@ -689,7 +689,7 @@ void CAdminPanel::RenderPlayerPanelPopUpReadyButtons(CUIRect *pBase)
 	for(unsigned i = 0; i < std::size(s_aReadyKick); i++)
 	{
 		Column.HSplitTop(SAdminPanelProperties::ms_ItemSpacing, nullptr, &Column);
-		Column.HSplitTop(SAdminPanelProperties::ms_RconActionHight, &Button, &Column);
+		Column.HSplitTop(SAdminPanelProperties::ms_RconActionHeight, &Button, &Column);
 
 		if(Hovered(&Button))
 		{
@@ -727,7 +727,7 @@ void CAdminPanel::RenderPlayerPanelPopUpReadyButtons(CUIRect *pBase)
 	for(unsigned i = 0; i < std::size(s_aReadyMute); i++)
 	{
 		Column.HSplitTop(SAdminPanelProperties::ms_ItemSpacing, nullptr, &Column);
-		Column.HSplitTop(SAdminPanelProperties::ms_RconActionHight, &Button, &Column);
+		Column.HSplitTop(SAdminPanelProperties::ms_RconActionHeight, &Button, &Column);
 		str_format(aBuf, sizeof(aBuf), "Minutes: %i", s_aReadyMute[i].Minutes);
 		if(Hovered(&Button))
 		{
@@ -771,12 +771,12 @@ void CAdminPanel::RenderPlayerPanelPopUpReadyButtons(CUIRect *pBase)
 		if(IsLeft == 1)
 		{
 			LeftView.HSplitTop(SAdminPanelProperties::ms_ItemSpacing, nullptr, &LeftView);
-			LeftView.HSplitTop(SAdminPanelProperties::ms_RconActionHight, &Button, &LeftView);
+			LeftView.HSplitTop(SAdminPanelProperties::ms_RconActionHeight, &Button, &LeftView);
 		}
 		else
 		{
 			RightView.HSplitTop(SAdminPanelProperties::ms_ItemSpacing, nullptr, &RightView);
-			RightView.HSplitTop(SAdminPanelProperties::ms_RconActionHight, &Button, &RightView);
+			RightView.HSplitTop(SAdminPanelProperties::ms_RconActionHeight, &Button, &RightView);
 		}
 
 		if(Hovered(&Button))

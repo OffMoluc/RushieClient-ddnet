@@ -29,7 +29,7 @@ Getting started is easy:
 * **[TClient Features:](https://github.com/sjrc6/TaterClient-ddnet)** Everything.
 * [**Pulse Client Features:**](https://github.com/PulseClient-ddnet/DDNetPulse) Laser Rtx and Scoreboard.
 * [**Entity Client Features:**](https://github.com/qxdFox/Entity-Client-DDNet) Discord rpc and ChatBubbles.
-* **Some mine functions:** Upgraded filter(but less perfomance), Tracker, Nameplate editor, Bindwheel in spec(stole from tclient), EdgeInfo.
+* **Some mine functions:** Upgraded filter(but less performance), Tracker, Nameplate editor, Bindwheel in spec(stole from tclient), EdgeInfo.
 * **New Bugs!** (Hopefully not many).
 
 ---

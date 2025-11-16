@@ -827,7 +827,7 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(20.0f, &Label, &Column);
 	Ui()->DoScrollbarOption(&g_Config.m_RiHeartSize, &g_Config.m_RiHeartSize, &Label, RCLocalize("Friend heart size"), 0, 500, &CUi::ms_LogarithmicScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiShowMiliSecondsTimer, RCLocalize("Show milliseconds in timer"), &g_Config.m_RiShowMiliSecondsTimer, &Column, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiShowmillisecondsTimer, RCLocalize("Show milliseconds in timer"), &g_Config.m_RiShowmillisecondsTimer, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiShowAfkEmoteInMenu, RCLocalize("Show sleep emote in menu (ONLY CLIENT OTHER DON'T SEE THAT)"), &g_Config.m_RiShowAfkEmoteInMenu, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
@@ -1417,7 +1417,7 @@ bool CMenus::DoFloatScrollBar(const void *pId, int *pOption, const CUIRect *pRec
 			Value = Max;
 	}
 
-	// Allow adjustment of slider options when ctrl is pressed (to avoid scrolling, or accidently adjusting the value)
+	// Allow adjustment of slider options when ctrl is pressed (to avoid scrolling, or accidentally adjusting the value)
 	int Increment = std::max(1, (Max - Min) / 35);
 	if(Input()->ModifierIsPressed() && Input()->KeyPress(KEY_MOUSE_WHEEL_UP) && Ui()->MouseInside(pRect))
 	{
