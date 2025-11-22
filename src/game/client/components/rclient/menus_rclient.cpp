@@ -201,7 +201,7 @@ void CMenus::RenderSettingsRushieInfo(CUIRect MainView)
 		Button.VSplitLeft(MarginSmall, nullptr, &Button);
 		Button.w = LineSize, Button.h = LineSize, Button.y = Label.y + (Label.h / 2.0f - Button.h / 2.0f);
 		Ui()->DoLabel(&Label, "Voix", LineSize, TEXTALIGN_ML);
-		RenderDevSkin(TeeRect.Center(), 50.0f, "Bomb 2", "bomb", false, 0, 0, 0, false, ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f), ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f));
+		RenderDevSkin(TeeRect.Center(), 50.0f, "Bomb 2", "bomb", false, 0, 0, 0, false, true);
 	}
 
 	RightView.HSplitTop(MarginSmall, nullptr, &RightView);
