@@ -33,7 +33,7 @@ void CWebSocket::SocketConnect()
 	});
 
 
-	m_Socket.connect(g_Config.m_RiSocketNameserver);
+	m_Socket.connect(g_Config.m_RiPulseSocketNameserver);
 	//UserInit();
 	//SetupSocketListeners();
 }

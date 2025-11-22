@@ -75,6 +75,7 @@
 #include "components/rclient/rclient_indicator.h"
 
 //Tater
+#include "components/rclient/socket/socket.h"
 #include "components/tclient/bg_draw.h"
 #include "components/tclient/bindchat.h"
 #include "components/tclient/bindwheel.h"
@@ -243,6 +244,7 @@ public:
 	CAdminPanel m_AdminPanelRi;
 	CEdgeHelper m_EdgeHelper;
 	CRClientIndicator m_RClientIndicator;
+	CWebSocket m_WebSocket;
 
 private:
 	std::vector<class CComponent *> m_vpAll;
