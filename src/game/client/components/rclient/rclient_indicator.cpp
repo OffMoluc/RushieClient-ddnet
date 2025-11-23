@@ -1,29 +1,21 @@
 #include "rclient_indicator.h"
-
 #include "engine/client.h"
-#include "engine/serverbrowser.h"
 #include "game/client/gameclient.h"
-
-CRClientIndicator::CRClientIndicator()
-{
-	m_aCurrentServerAddress[0] = '\0';
-	m_PrevClientState = IClient::STATE_OFFLINE;
-}
-
-CRClientIndicator::~CRClientIndicator()
-{
-	DisconnectFromServer();
-}
 
 void CRClientIndicator::OnInit()
 {
-	// Don't auto-connect on init - wait until player connects to a game server
 }
 
 void CRClientIndicator::OnShutdown()
 {
-	// Clean disconnect when game closes
-	DisconnectFromServer();
+	if(m_IsConnected)
+	{
+		m_Socket.close();
+	}
+
+	m_IsConnected = false;
+	m_TokenReceived = false;
+	m_aAuthToken[0] = '\0';
 }
 
 void CRClientIndicator::OnRender()
@@ -31,10 +23,7 @@ void CRClientIndicator::OnRender()
 	if(!g_Config.m_RiShowRclientIndicator)
 		return;
 
-	int CurrentState = Client()->State();
-
-	// State changed from not-online to online (connected to game server)
-	if(m_PrevClientState != IClient::STATE_ONLINE && CurrentState == IClient::STATE_ONLINE)
+	if(m_PrevClientState != IClient::STATE_ONLINE && Client()->State() == IClient::STATE_ONLINE)
 	{
 		if(!m_IsConnected)
 		{
@@ -42,32 +31,33 @@ void CRClientIndicator::OnRender()
 		}
 		else if(m_TokenReceived)
 		{
-			// Already connected to socket server, just register
 			RegisterPlayer();
 		}
 	}
-	// State changed from online to not-online (disconnected from game server)
-	else if(m_PrevClientState == IClient::STATE_ONLINE && CurrentState != IClient::STATE_ONLINE)
+	else if(m_PrevClientState == IClient::STATE_ONLINE && Client()->State() != IClient::STATE_ONLINE)
 	{
 		// Unregister from old server
-		if(m_Registered && m_IsConnected && m_Socket.socket())
+		if(m_IsConnected && m_Socket.socket())
 		{
 			m_Socket.socket()->emit("unregister_player");
-			GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "RClient", "Unregistering from server");
+			dbg_msg("RClient", "Unregistering from server");
 		}
-
-		m_Registered = false;
-		m_aCurrentServerAddress[0] = '\0';
-		m_CurrentPlayerId = -1;
-		m_CurrentDummyId = -1;
 	}
-	// Currently online - check for server changes
-	else if(CurrentState == IClient::STATE_ONLINE && m_IsConnected && m_TokenReceived)
+	if(Client()->State() == IClient::STATE_ONLINE && m_IsConnected && m_TokenReceived)
 	{
-		UpdateServerInfo();
+		if(GameClient()->m_aLocalIds[0] != m_PlayerId)
+		{
+			m_PlayerId = GameClient()->m_aLocalIds[0];
+			RegisterPlayer();
+		}
+		if(Client()->DummyConnected() && GameClient()->m_aLocalIds[1] != m_DummyId)
+		{
+			m_DummyId = GameClient()->m_aLocalIds[1];
+			RegisterPlayer();
+		}
 	}
 
-	m_PrevClientState = CurrentState;
+	m_PrevClientState = Client()->State();
 }
 
 void CRClientIndicator::ConnectToServer()
@@ -75,23 +65,28 @@ void CRClientIndicator::ConnectToServer()
 	if(m_IsConnected)
 		return;
 
-	// Setup connection event handlers
 	m_Socket.set_open_listener([this]() {
-		OnSocketConnected();
+		m_IsConnected = true;
+		dbg_msg("RClient", "Connected to RClient server");
+		SetupSocketListeners();
+		if(m_Socket.socket())
+			m_Socket.socket()->emit("request_token");
 	});
-
 	m_Socket.set_close_listener([this](sio::client::close_reason const &Reason) {
-		OnSocketDisconnected(Reason);
+		m_IsConnected = false;
+		m_TokenReceived = false;
+		dbg_msg("RClient", "Disconnected from RClient server (reason: %i)", static_cast<int>(Reason));
 	});
-
 	m_Socket.set_fail_listener([this]() {
-		OnSocketFailed();
+		m_IsConnected = false;
+		m_TokenReceived = false;
+		dbg_msg("RClient", "Connection to RClient server failed");
 	});
 
 	// Connect to server
 	m_Socket.connect(RCLIENT_SERVER_URL);
 
-	GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "RClient", "Connecting to RClient server...");
+	dbg_msg("RClient", "Connecting to RClient server...");
 }
 
 void CRClientIndicator::DisconnectFromServer()
@@ -102,12 +97,8 @@ void CRClientIndicator::DisconnectFromServer()
 	}
 
 	m_IsConnected = false;
-	m_Registered = false;
 	m_TokenReceived = false;
 	m_aAuthToken[0] = '\0';
-	m_aCurrentServerAddress[0] = '\0';
-	m_CurrentPlayerId = -1;
-	m_CurrentDummyId = -1;
 }
 
 void CRClientIndicator::SetupSocketListeners()
@@ -119,19 +110,15 @@ void CRClientIndicator::SetupSocketListeners()
 	m_Socket.socket()->on("token_response", [this](sio::event &Event) {
 		OnTokenReceived(Event);
 	});
-
 	m_Socket.socket()->on("registration_success", [this](sio::event &Event) {
 		OnRegistrationSuccess(Event);
 	});
-
 	m_Socket.socket()->on("unregister_success", [this](sio::event &Event) {
 		OnUnregisterSuccess(Event);
 	});
-
 	m_Socket.socket()->on("players_update", [this](sio::event &Event) {
 		OnPlayersUpdate(Event);
 	});
-
 	m_Socket.socket()->on("error", [this](sio::event &Event) {
 		OnError(Event);
 	});
@@ -139,7 +126,8 @@ void CRClientIndicator::SetupSocketListeners()
 
 void CRClientIndicator::RegisterPlayer()
 {
-	if(!m_IsConnected || !m_TokenReceived || m_Registered)
+
+	if(!m_IsConnected || !m_TokenReceived)
 		return;
 
 	if(Client()->State() != IClient::STATE_ONLINE)
@@ -174,92 +162,9 @@ void CRClientIndicator::RegisterPlayer()
 		DataMap["dummy_id"] = sio::int_message::create(DummyClientId);
 	}
 
-	// Send registration
 	m_Socket.socket()->emit("register_player", RegistrationData);
 
-	str_copy(m_aCurrentServerAddress, CurrentServerInfo.m_aAddress, sizeof(m_aCurrentServerAddress));
-	m_CurrentPlayerId = LocalClientId;
-	m_CurrentDummyId = DummyClientId;
-
 	GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "RClient", "Registering player on server...");
-}
-
-void CRClientIndicator::UpdateServerInfo()
-{
-	if(!m_Registered)
-		return;
-
-	CServerInfo CurrentServerInfo;
-	Client()->GetServerInfo(&CurrentServerInfo);
-
-	// Check if server changed
-	if(str_comp(m_aCurrentServerAddress, CurrentServerInfo.m_aAddress) != 0)
-	{
-		// Server changed - unregister from old, register on new
-		if(m_Socket.socket())
-		{
-			m_Socket.socket()->emit("unregister_player");
-			GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "RClient", "Server changed, unregistering from old server");
-		}
-
-		m_Registered = false;
-		RegisterPlayer();
-		return;
-	}
-
-	// Check if dummy status changed
-	int DummyClientId = -1;
-	if(Client()->DummyConnected())
-	{
-		DummyClientId = GameClient()->m_aLocalIds[1];
-	}
-
-	if(DummyClientId != m_CurrentDummyId)
-	{
-		// Dummy status changed, re-register
-		m_Registered = false;
-		RegisterPlayer();
-	}
-}
-
-void CRClientIndicator::OnSocketConnected()
-{
-	m_IsConnected = true;
-	GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "RClient", "Connected to RClient server");
-
-	// Setup event listeners
-	SetupSocketListeners();
-
-	// Request auth token
-	if(m_Socket.socket())
-	{
-		m_Socket.socket()->emit("request_token");
-	}
-}
-
-void CRClientIndicator::OnSocketDisconnected(sio::client::close_reason const &Reason)
-{
-	m_IsConnected = false;
-	m_Registered = false;
-	m_TokenReceived = false;
-
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "Disconnected from RClient server (reason: %d)", (int)Reason);
-	GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "RClient", aBuf);
-
-	// Reset connection data
-	m_aCurrentServerAddress[0] = '\0';
-	m_CurrentPlayerId = -1;
-	m_CurrentDummyId = -1;
-}
-
-void CRClientIndicator::OnSocketFailed()
-{
-	m_IsConnected = false;
-	m_Registered = false;
-	m_TokenReceived = false;
-
-	GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "RClient", "Connection to RClient server failed");
 }
 
 void CRClientIndicator::OnTokenReceived(sio::event &Event)
@@ -295,8 +200,6 @@ void CRClientIndicator::OnRegistrationSuccess(sio::event &Event)
 
 	std::string ServerAddr = DataMap["server_address"]->get_string();
 	int PlayerId = DataMap["player_id"]->get_int();
-
-	m_Registered = true;
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "Successfully registered on %s as player %d", ServerAddr.c_str(), PlayerId);

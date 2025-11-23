@@ -25,24 +25,14 @@ class CRClientIndicator : public CComponent
 	char m_aAuthToken[128] = {0};
 	bool m_TokenReceived = false;
 
-	// Current connection state
+	int m_DummyId = -1;
+	int m_PlayerId = -1;
 	bool m_IsConnected = false;
-	bool m_Registered = false;
-	char m_aCurrentServerAddress[256];
-	int m_CurrentPlayerId = -1;
-	int m_CurrentDummyId = -1;
-
-	// Track previous client state
 	int m_PrevClientState = IClient::STATE_OFFLINE;
 
-	// RClient users data: server_address -> player_id -> has_player
 	std::map<std::string, std::map<int, bool>> m_RClientUsers;
 	std::mutex m_RClientUsersMutex;
 
-	// Socket.IO event handlers
-	void OnSocketConnected();
-	void OnSocketDisconnected(sio::client::close_reason const &Reason);
-	void OnSocketFailed();
 	void OnTokenReceived(sio::event &Event);
 	void OnRegistrationSuccess(sio::event &Event);
 	void OnUnregisterSuccess(sio::event &Event);
@@ -57,8 +47,6 @@ class CRClientIndicator : public CComponent
 	void SetupSocketListeners();
 
 public:
-	CRClientIndicator();
-	~CRClientIndicator();
 
 	int Sizeof() const override { return sizeof(*this); }
 	void OnInit() override;
