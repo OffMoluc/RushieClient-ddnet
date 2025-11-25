@@ -360,6 +360,10 @@ class IGameClient : public IInterface
 	MACRO_INTERFACE("gameclient")
 protected:
 public:
+	// TClient
+	virtual bool CheckNewInput() = 0;
+	virtual void SetConnectInfo(const NETADDR *pAddress) = 0;
+
 	virtual void OnConsoleInit() = 0;
 
 	virtual void OnRconType(bool UsernameReq) = 0;
@@ -409,9 +413,7 @@ public:
 
 	virtual void InitializeLanguage() = 0;
 
-	// TClient
-	virtual bool CheckNewInput() = 0;
-	virtual void SetConnectInfo(const NETADDR *pAddress) = 0;
+	virtual void ForceUpdateConsoleRemoteCompletionSuggestions() = 0;
 };
 
 extern IGameClient *CreateGameClient();
