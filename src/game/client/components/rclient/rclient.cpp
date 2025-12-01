@@ -1437,7 +1437,7 @@ void CRClient::ConAddCensorList(IConsole::IResult *pResult, void *pUserData)
 	{
 		if(g_Config.m_TcRegexChatIgnore[0])
 		{
-			char aNewRegex[512];
+			char aNewRegex[1024];
 			str_format(aBuf, sizeof(aBuf), "Added to existing regex: %s", aInput);
 			str_format(aNewRegex, sizeof(aNewRegex), "%s|%s", g_Config.m_TcRegexChatIgnore, aInput);
 			str_copy(g_Config.m_TcRegexChatIgnore, aNewRegex, sizeof(g_Config.m_TcRegexChatIgnore));
