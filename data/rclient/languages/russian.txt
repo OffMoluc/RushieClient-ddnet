@@ -262,6 +262,15 @@ Show milliseconds in timer
 Show sleep emote in menu (ONLY CLIENT OTHER DON'T SEE THAT)
 == Показывать эмоцию сна в меню (Другие не видят это)
 
+Show afk texture instead emote
+== Показывать текстуру АФК вместо эмоции
+
+Show sleep emote in spec (ONLY CLIENT OTHER DON'T SEE THAT)
+== Показывать эмоцию сна в спеке (Другие не видят это)
+
+Show spec texture instead emote
+== Показывать текстуру наблюдателя вместо эмоции
+
 Controls
 == Управление
 
