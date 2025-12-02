@@ -1647,6 +1647,7 @@ set(EXPECTED_DATA
   race_flag.png
   rclient/languages/index.txt
   rclient/languages/russian.txt
+  rclient/menu_afk.png
   rclient/rclient_icon.png
   rclient/riactions.png
   rclient/rihammer.png

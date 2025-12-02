@@ -42,6 +42,7 @@ class CPlayers : public CComponent
 
 	int m_WeaponEmoteQuadContainerIndex;
 	int m_aWeaponSpriteMuzzleQuadContainerIndex[NUM_WEAPONS];
+	IGraphics::CTextureHandle m_RiMenuAfkTexture;
 
 	void CreateNinjaTeeRenderInfo();
 	void CreateSpectatorTeeRenderInfo();

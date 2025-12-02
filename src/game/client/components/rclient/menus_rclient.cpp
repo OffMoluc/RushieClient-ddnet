@@ -563,6 +563,14 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiShowAfkEmoteInMenu, RCLocalize("Show sleep emote in menu (ONLY CLIENT OTHER DON'T SEE THAT)"), &g_Config.m_RiShowAfkEmoteInMenu, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	if(g_Config.m_RiShowAfkEmoteInMenu)
+	{
+		CUIRect Rightoffset;
+		Column.VSplitLeft(25.0f, &Label, &Rightoffset);
+		Column.HSplitTop(LineSize, nullptr, &Column);
+		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiShowAfkTextureInMenu, RCLocalize("Show afk texture instead emote"), &g_Config.m_RiShowAfkTextureInMenu, &Rightoffset, LineSize);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+	}
 
 	Column.HSplitTop(MarginBetweenSections, nullptr, &Column);
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
