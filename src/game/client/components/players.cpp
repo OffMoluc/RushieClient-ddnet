@@ -973,7 +973,7 @@ void CPlayers::RenderPlayer(
 		Graphics()->QuadsSetRotation(0);
 	}
 
-	if(GameClient()->m_aClients[ClientId].m_Paused && !GameClient()->m_aClients[ClientId].m_Afk && g_Config.m_RiShowAfkEmoteInSpec)
+	if(!(Player.m_PlayerFlags & PLAYERFLAG_IN_MENU) && GameClient()->m_aClients[ClientId].m_Paused && !GameClient()->m_aClients[ClientId].m_Afk && g_Config.m_RiShowAfkEmoteInSpec)
 	{
 		Graphics()->SetColor(1.0f, 1.0f, 1.0f, Alpha);
 
