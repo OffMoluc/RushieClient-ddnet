@@ -134,7 +134,7 @@ void CRClientIndicator::ConnectToServer()
 void CRClientIndicator::DisconnectFromServer()
 {
 	if(m_IsConnected || m_IsConnecting)
-		m_Socket.sync_close();
+		m_Socket.close();
 
 	m_IsConnected = false;
 	m_IsConnecting = false;
