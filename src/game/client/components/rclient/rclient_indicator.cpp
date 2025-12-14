@@ -8,73 +8,60 @@
 
 CRClientIndicator::CRClientIndicator()
 {
-	m_aCurrentServerAddress[0] = '\0';
 }
 
 void CRClientIndicator::OnInit()
 {
-	FetchAuthToken();
+	if(g_Config.m_RiShowRclientIndicator)
+		FetchAuthToken();
 }
 
 void CRClientIndicator::OnRender()
 {
-	if(m_pAuthTokenTask)
-	{
-		if(m_pAuthTokenTask->State() == EHttpState::DONE)
-		{
-			FinishAuthToken();
-			ResetAuthToken();
-		}
-	}
+	auto HandleTaskDone = [&](std::shared_ptr<CHttpRequest> &pTask, auto &&Finish, auto &&Reset) {
+		if(!pTask || pTask->State() != EHttpState::DONE)
+			return;
+		Finish();
+		Reset();
+	};
+	HandleTaskDone(m_pAuthTokenTask, [this]() { FinishAuthToken(); }, [this]() { ResetAuthToken(); });
+	HandleTaskDone(m_pRClientUsersTask, [this]() { FinishRClientUsers(); }, [this]() { ResetRClientUsers(); });
+	HandleTaskDone(m_pRClientUsersTaskSend, []() {}, [this]() { ResetRClientUsersSend(); });
 
-	if(m_pRClientUsersTask)
-	{
-		if(m_pRClientUsersTask->State() == EHttpState::DONE)
-		{
-			FinishRClientUsers();
-			ResetRClientUsers();
-		}
-	}
-
-	if(m_pRClientUsersTaskSend)
-	{
-		if(m_pRClientUsersTaskSend->State() == EHttpState::DONE)
-		{
-			// FinishRClientUsersSend();
-			ResetRClientUsersSend();
-		}
-	}
+	if(!g_Config.m_RiShowRclientIndicator)
+		return;
 
 	// Do initial fetch when first connected
-	if(Client()->State() == IClient::STATE_ONLINE && !s_InitialFetchDone && g_Config.m_RiShowRclientIndicator)
+	if(Client()->State() == IClient::STATE_ONLINE && !s_InitialFetchDone)
 	{
 		s_InitialFetchDone = true;
 		GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "RClient", "Send/Get RClient Players for indicator on init");
-		SendServerPlayerInfo();
-		FetchRClientUsers();
-		s_LastFetch = time_get();
-	}
-	else if(Client()->State() != IClient::STATE_ONLINE && g_Config.m_RiShowRclientIndicator)
-	{
-		s_InitialFetchDone = false;
-		s_InitialFetchDoneDummy = false; // Reset when disconnected
+		SyncRClientUsers();
+		return;
 	}
 
-	if(Client()->State() == IClient::STATE_ONLINE && (!m_pRClientUsersTask || m_pRClientUsersTask->Done()) && g_Config.m_RiShowRclientIndicator)
+	if(Client()->State() != IClient::STATE_ONLINE)
 	{
-		if(time_get() - s_LastFetch > time_freq() * 30)
+		s_InitialFetchDone = false;
+		return;
+	}
+
+	if(m_pRClientUsersTask && !m_pRClientUsersTask->Done())
+		return;
+
+	const int64_t Now = time_get();
+	static constexpr int FETCH_INTERVAL_SECONDS = 30;
+	if(Now - s_LastFetch > time_freq() * FETCH_INTERVAL_SECONDS)
+	{
+		if(s_RclientIndicatorCount == 10)
 		{
-			if(s_RclientIndicatorCount == 10)
-			{
-				GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "RClient", "Send/Get RClient Players for indicator x10");
-				s_RclientIndicatorCount = 0;
-			}
-			else
-				s_RclientIndicatorCount++;
-			SendServerPlayerInfo();
-			FetchRClientUsers();
-			s_LastFetch = time_get();
+			GameClient()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "RClient", "Send/Get RClient Players for indicator x10");
+			s_RclientIndicatorCount = 0;
 		}
+		else
+			s_RclientIndicatorCount++;
+
+		SyncRClientUsers();
 	}
 }
 // Server and Player Info Collection
@@ -99,7 +86,6 @@ void CRClientIndicator::SendServerPlayerInfo()
 		SendPlayerData(CurrentServerInfo.m_aAddress, LocalClientId, DummyClientId);
 	}
 	// Store current server info for comparison
-	str_copy(m_aCurrentServerAddress, CurrentServerInfo.m_aAddress, sizeof(m_aCurrentServerAddress));
 }
 
 void CRClientIndicator::SendPlayerData(const char *pServerAddress, int ClientId, int DummyClientId)
@@ -158,6 +144,13 @@ void CRClientIndicator::FetchRClientUsers()
 	m_pRClientUsersTask->Timeout(CTimeout{10000, 0, 500, 5});
 	m_pRClientUsersTask->IpResolve(IPRESOLVE::V4);
 	Http()->Run(m_pRClientUsersTask);
+}
+
+void CRClientIndicator::SyncRClientUsers()
+{
+	SendServerPlayerInfo();
+	FetchRClientUsers();
+	s_LastFetch = time_get();
 }
 
 void CRClientIndicator::FetchAuthToken()

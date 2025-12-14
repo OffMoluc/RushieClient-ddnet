@@ -25,13 +25,11 @@ class CRClientIndicator : public CComponent
 	void ResetRClientUsers();
 	// void FinishRClientUsersSend();
 	void ResetRClientUsersSend();
-	char m_aCurrentServerAddress[256];
 	std::shared_ptr<CHttpRequest> m_pRClientUsersTask = nullptr;
 	std::vector<std::pair<std::string, int>> m_vRClientUsers; // server address, player id
-	void SendDummyRclientUsers();
+	void SyncRClientUsers();
 	int64_t s_LastFetch = 0;
 	bool s_InitialFetchDone = false;
-	bool s_InitialFetchDoneDummy = false;
 	int s_RclientIndicatorCount = 0;
 public:
 	CRClientIndicator();
