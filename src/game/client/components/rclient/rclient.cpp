@@ -1477,3 +1477,34 @@ void CRClient::ConSpecDown(IConsole::IResult *pResult, void *pUserData)
 	CRClient *pSelf = static_cast<CRClient *>(pUserData);
 	pSelf->m_SpecMoveDown = pResult->GetInteger(0) != 0;
 }
+
+void CRClient::RclientOnDummyChange(bool DummyConnected)
+{
+	if(g_Config.m_PlayerClanAutoChange)
+	{
+		const char *pTargetClan = DummyConnected ? g_Config.m_PlayerClanWithDummy : g_Config.m_PlayerClanNoDummy;
+		if(str_comp(g_Config.m_PlayerClan, pTargetClan) != 0)
+		{
+			str_copy(g_Config.m_PlayerClan, pTargetClan, sizeof(g_Config.m_PlayerClan));
+			if(Client()->State() == IClient::STATE_ONLINE)
+			{
+				GameClient()->SendInfo(false);
+			}
+		}
+	}
+}
+
+void CRClient::RclientOnPlayerChange(bool Connected)
+{
+	// Initialize all slots to -1 to mark them as free
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		TargetPositionId[i] = -1;
+		TargetPositionNickname[i][0] = '\0';
+	}
+	TargetCount = 0;
+	if(g_Config.m_PlayerClanAutoChange)
+	{
+		str_copy(g_Config.m_PlayerClan, g_Config.m_PlayerClanNoDummy, sizeof(g_Config.m_PlayerClan));
+	}
+}

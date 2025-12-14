@@ -883,12 +883,7 @@ void CClient::DummyConnect()
 		m_aNetClient[CONN_DUMMY].Connect(m_aNetClient[CONN_MAIN].ServerAddress(), 1);
 
 	m_aGametimeMarginGraphs[CONN_DUMMY].Init(-150.0f, 150.0f);
-	if(g_Config.m_PlayerClanAutoChange)
-	{
-		IGameClient *pGameClient = m_pGameClient;
-		str_copy(g_Config.m_PlayerClan, g_Config.m_PlayerClanWithDummy, sizeof(g_Config.m_PlayerClan));
-		pGameClient->SendInfo(false);
-	}
+	GameClient()->RclientOnDummyChange(true);
 }
 
 void CClient::DummyDisconnect(const char *pReason)
@@ -904,12 +899,7 @@ void CClient::DummyDisconnect(const char *pReason)
 	m_DummyConnecting = false;
 	m_DummyReconnectOnReload = false;
 	m_DummyDeactivateOnReconnect = false;
-	if(g_Config.m_PlayerClanAutoChange)
-	{
-		IGameClient *pGameClient = m_pGameClient;
-		str_copy(g_Config.m_PlayerClan, g_Config.m_PlayerClanNoDummy, sizeof(g_Config.m_PlayerClan));
-		pGameClient->SendInfo(false);
-	}
+	GameClient()->RclientOnDummyChange(false);
 	GameClient()->OnDummyDisconnect();
 }
 

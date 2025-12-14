@@ -757,6 +757,9 @@ public:
 	CGameWorld m_ExtraPredictedWorld;
 	CGameWorld m_PredSmoothingWorld;
 
+	// RClient
+	void RclientOnDummyChange(bool DummyConnected) override;
+
 	std::vector<SSwitchers> &Switchers() { return m_GameWorld.m_Core.m_vSwitchers; }
 	std::vector<SSwitchers> &PredSwitchers() { return m_PredictedWorld.m_Core.m_vSwitchers; }
 

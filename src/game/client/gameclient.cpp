@@ -617,13 +617,7 @@ void CGameClient::OnConnected()
 	m_Collision.Init(Layers());
 	m_GameWorld.m_Core.InitSwitchers(m_Collision.m_HighestSwitchNumber);
 	m_RaceHelper.Init(this);
-	// Initialize all slots to -1 to mark them as free
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		m_RClient.TargetPositionId[i] = -1;
-		m_RClient.TargetPositionNickname[i][0] = '\0';
-	}
-	m_RClient.TargetCount = 0;
+	m_RClient.RclientOnPlayerChange(true);
 	// render loading before going through all components
 	m_Menus.RenderLoading(pConnectCaption, pLoadMapContent, 0);
 	for(auto &pComponent : m_vpAll)
@@ -634,11 +628,6 @@ void CGameClient::OnConnected()
 
 	ConfigManager()->ResetGameSettings();
 	LoadMapSettings();
-
-	if(g_Config.m_PlayerClanAutoChange)
-	{
-		str_copy(g_Config.m_PlayerClan, g_Config.m_PlayerClanNoDummy, sizeof(g_Config.m_PlayerClan));
-	}
 
 	if(Client()->State() != IClient::STATE_DEMOPLAYBACK)
 	{
@@ -5627,4 +5616,10 @@ void CGameClient::SetConnectInfo(const NETADDR *pAddress)
 	m_ConnectServerInfo = pEntry->m_Info;
 	const CNetObj_GameInfoEx GameInfoEx = {.m_Version = 0};
 	m_GameInfo = GetGameInfo(&GameInfoEx, 0, &*m_ConnectServerInfo);
+}
+
+// RClient
+void CGameClient::RclientOnDummyChange(bool DummyConnected)
+{
+	m_RClient.RclientOnDummyChange(DummyConnected);
 }

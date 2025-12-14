@@ -35,6 +35,16 @@ class CRClient : public CComponent
 	static void ConSpecRight(IConsole::IResult *pResult, void *pUserData);
 	static void ConSpecUp(IConsole::IResult *pResult, void *pUserData);
 	static void ConSpecDown(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConFindSkin(IConsole::IResult *pResult, void *pUserData);
+	static void ConCopySkin(IConsole::IResult *pResult, void *pUserData);
+	static void ConFindPlayer(IConsole::IResult *pResult, void *pUserData);
+	static void ConCopyColor(IConsole::IResult *pResult, void *pUserData);
+	static void ConTargetPlayerPos(IConsole::IResult *pResult, void *pUserData);
+	static void ConTargetPlayerPosReset(IConsole::IResult *pResult, void *pUserData);
+	static void ConTargetPlayerPosRemove(IConsole::IResult *pResult, void *pUserData);
+	static void ConAddCensorList(IConsole::IResult *pResult, void *pUserData);
+
 	bool m_SpecMoveLeft = false;
 	bool m_SpecMoveRight = false;
 	bool m_SpecMoveUp = false;
@@ -62,31 +72,12 @@ class CRClient : public CComponent
 	int RclientCopySkinDDstatsSearch = 0;
 	int RclientFindPlayerDDstatsSearch = 0;
 
-	static void ConFindSkin(IConsole::IResult *pResult, void *pUserData);
-	static void ConCopySkin(IConsole::IResult *pResult, void *pUserData);
-	static void ConFindPlayer(IConsole::IResult *pResult, void *pUserData);
-	static void ConCopyColor(IConsole::IResult *pResult, void *pUserData);
-	static void ConTargetPlayerPos(IConsole::IResult *pResult, void *pUserData);
-	static void ConTargetPlayerPosReset(IConsole::IResult *pResult, void *pUserData);
-	static void ConTargetPlayerPosRemove(IConsole::IResult *pResult, void *pUserData);
-	static void ConAddCensorList(IConsole::IResult *pResult, void *pUserData);
-public:
-	CRClient();
-	int Sizeof() const override { return sizeof(*this); }
-	void OnInit() override;
-	void OnConsoleInit() override;
-	void OnRender() override;
-
-	static constexpr const char *RCLIENT_URL = "https://rushie-client.ru";
-	static constexpr const char *RCLIENT_VERSION_URL = "https://server.rushie-client.ru/version";
-	char m_aVersionStr[10] = "0";
-
+	// Version check
 	std::shared_ptr<CHttpRequest> m_pRClientVersionCheck = nullptr;
 	void FetchRclientVersionCheck();
 	void FinishRclientVersionCheck();
 	void ResetRclientVersionCheck();
 	int RclientVersionCheckDone = 0;
-	bool NeedUpdate();
 
 	// Find map rank
 	std::shared_ptr<CHttpRequest> m_pSearchRankOnMapTask = nullptr;
@@ -113,6 +104,31 @@ public:
 	int DummyBodyColorBeforeCopyPlayer = 0;
 	int DummyFeetColorBeforeCopyPlayer = 0;
 
+	//FindHours
+	std::shared_ptr<CHttpRequest> m_pFindHoursTask;
+	char m_aFindHoursPlayer[32];
+	bool m_WriteFindHoursInChat;
+	void FinishFindHours();
+	void ResetFindHours();
+public:
+
+	CRClient();
+	int Sizeof() const override { return sizeof(*this); }
+	void OnInit() override;
+	void OnConsoleInit() override;
+	void OnRender() override;
+
+	static constexpr const char *RCLIENT_URL = "https://rushie-client.ru";
+	static constexpr const char *RCLIENT_VERSION_URL = "https://server.rushie-client.ru/version";
+	char m_aVersionStr[10] = "0";
+
+	// Version check
+	bool NeedUpdate();
+
+	// PLayer/Dummy change
+	void RclientOnDummyChange(bool DummyConnected);
+	void RclientOnPlayerChange(bool Connected);
+
 	//Tracker
 	int TargetPositionId[MAX_CLIENTS];
 	char TargetPositionNickname[MAX_CLIENTS][32];
@@ -123,14 +139,7 @@ public:
 	bool IsInWarlist(int ClientId, int Index);
 
 	//FindHours
-	//Async find_hours task and data
-	std::shared_ptr<CHttpRequest> m_pFindHoursTask;
-	char m_aFindHoursPlayer[32];
-	// Flag to indicate if FindHours output should be written in chat
-	bool m_WriteFindHoursInChat;
 	void FetchFindHours(const char *pNickname, const char *pWriteinchat);
-	void FinishFindHours();
-	void ResetFindHours();
 
 	// Regex
 	static std::vector<std::string> SplitRegex(const char *aboba);

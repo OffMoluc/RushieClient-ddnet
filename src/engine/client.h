@@ -414,6 +414,9 @@ public:
 	virtual void InitializeLanguage() = 0;
 
 	virtual void ForceUpdateConsoleRemoteCompletionSuggestions() = 0;
+
+	// RClient
+	virtual void RclientOnDummyChange(bool DummyConnected) = 0;
 };
 
 extern IGameClient *CreateGameClient();
