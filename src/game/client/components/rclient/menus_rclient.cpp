@@ -840,6 +840,13 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 		Column.HSplitTop(LineSize, &Label, &Column);
 		DoLine_KeyReader(Label, s_ReaderButtonSpectatorDown, s_ClearButtonSpectatorDown, RCLocalize("Move down"), "+ri_spec_down");
 		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		static std::vector<CButtonContainer> s_vSpectatorSortButtonContainers = {{}, {}, {}};
+		DoLine_RadioMenu(Column, RCLocalize("Sort by id:", "ScoreboardSorting"),
+			s_vSpectatorSortButtonContainers,
+			{RCLocalize("Default", "ScoreboardSorting"), RCLocalize("Teams", "ScoreboardSorting"), RCLocalize("All", "ScoreboardSorting")},
+			{0, 1, 2},
+			g_Config.m_RiSpectatorSortById);
+		EndSection(Column);
 	}
 	else
 	{
