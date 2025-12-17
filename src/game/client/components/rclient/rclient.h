@@ -153,6 +153,9 @@ public:
 
 	//Copy
 	void CopySkin(const char *Nickname);
+
+	//Sorting Scoreboard and speactator
+	const CNetObj_PlayerInfo *GetSortingScoreSpec(int SwitchNum = 0, int ClientId = -1);
 };
 
 #endif

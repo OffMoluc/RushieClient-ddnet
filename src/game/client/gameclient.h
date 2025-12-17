@@ -410,6 +410,8 @@ public:
 		const CNetObj_PlayerInfo *m_apInfoByName[MAX_CLIENTS];
 		const CNetObj_PlayerInfo *m_apInfoByDDTeamScore[MAX_CLIENTS];
 		const CNetObj_PlayerInfo *m_apInfoByDDTeamName[MAX_CLIENTS];
+		// RClient
+		const CNetObj_PlayerInfo *m_apInfoByIdTeams[MAX_CLIENTS];
 
 		int m_LocalClientId;
 		int m_NumPlayers;

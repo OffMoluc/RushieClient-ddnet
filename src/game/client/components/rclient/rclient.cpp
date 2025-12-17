@@ -1571,3 +1571,14 @@ float CRClient::GetScoreboardHeight(bool IsDefaultRender ,bool IsBigger, int Cli
 
 	return ScoreboardHeight;
 }
+
+const CNetObj_PlayerInfo *CRClient::GetSortingScoreSpec(int SwitchNum, int ClientId)
+{
+	switch(SwitchNum)
+	{
+	case 0: return GameClient()->m_Snap.m_apInfoByDDTeamScore[ClientId];
+	case 1: return GameClient()->m_Snap.m_apInfoByIdTeams[ClientId];
+	case 2: return GameClient()->m_Snap.m_apPlayerInfos[ClientId];
+	default: return GameClient()->m_Snap.m_apInfoByDDTeamScore[ClientId];
+	}
+}

@@ -509,7 +509,7 @@ void CScoreboard::RenderScoreboard(CUIRect Scoreboard, int Team, int CountStart,
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
 			// make sure that we render the correct team
-			const CNetObj_PlayerInfo *pInfo = GameClient()->m_Snap.m_apInfoByDDTeamScore[i];
+			const CNetObj_PlayerInfo *pInfo = GameClient()->m_RClient.GetSortingScoreSpec(g_Config.m_RiScoreboardSortById, i);
 			if(!pInfo || pInfo->m_Team != Team)
 				continue;
 
@@ -530,7 +530,7 @@ void CScoreboard::RenderScoreboard(CUIRect Scoreboard, int Team, int CountStart,
 
 			for(int j = i + 1; j < MAX_CLIENTS; j++)
 			{
-				const CNetObj_PlayerInfo *pInfoNext = GameClient()->m_Snap.m_apInfoByDDTeamScore[j];
+				const CNetObj_PlayerInfo *pInfoNext = GameClient()->m_RClient.GetSortingScoreSpec(g_Config.m_RiScoreboardSortById, j);
 				if(!pInfoNext || pInfoNext->m_Team != Team)
 					continue;
 
@@ -542,7 +542,7 @@ void CScoreboard::RenderScoreboard(CUIRect Scoreboard, int Team, int CountStart,
 			{
 				for(int j = i - 1; j >= 0; j--)
 				{
-					const CNetObj_PlayerInfo *pInfoPrev = GameClient()->m_Snap.m_apInfoByDDTeamScore[j];
+					const CNetObj_PlayerInfo *pInfoPrev = GameClient()->m_RClient.GetSortingScoreSpec(g_Config.m_RiScoreboardSortById, j);
 					if(!pInfoPrev || pInfoPrev->m_Team != Team)
 						continue;
 
