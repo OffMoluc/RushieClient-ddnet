@@ -315,6 +315,10 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	static CButtonContainer s_FindSkinChatButton;
 	if(DoButtonLineSize_Menu(&s_FindSkinChatButton, RCLocalize("Reset Find/Copy Skin Chatbinds"), 0, &Button, LineSize, false, 0, IGraphics::CORNER_ALL, 5.0f, 0.0f, ColorRGBA(0.5f, 0.0f, 0.0f, 0.25f)))
 	{
+		for(const CBindChat::CBindRclient &BindDefault : s_aDefaultBindChatRclientFindSkinHistory)
+		{
+			GameClient()->m_BindChat.RemoveBindCommand(BindDefault.m_Bind.m_aCommand);
+		}
 		for(const CBindChat::CBindRclient &BindDefault : s_aDefaultBindChatRclientFindSkin)
 		{
 			GameClient()->m_BindChat.RemoveBindCommand(BindDefault.m_Bind.m_aCommand);

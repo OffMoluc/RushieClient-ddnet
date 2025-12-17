@@ -89,6 +89,10 @@ static CBindChat::CBindRclient s_aDefaultBindChatRclientFindSkin[] = {
 	{"Find player from ddstats", ".findplayerddstats", "ri_find_player_from_ddstats"},
 	{"Backup profile after copy", ".backupprofile", "ri_backup_player_profile"},
 };
+static CBindChat::CBindRclient s_aDefaultBindChatRclientFindSkinHistory[] = {
+	{"Copy player", ".copyplayer", "copy_player"},
+{"Copy player from ddstats", ".copyplayerddstats", "ri_copy_player_from_ddstats"},
+};
 static CBindChat::CBindRclient s_aDefaultBindChatRclientChat[] = {
 	{"Find hours", ".findhours", "find_hours"},
 	{"Add a word to the censor list", ".addcensor", "add_censor_list"},
