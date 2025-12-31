@@ -624,13 +624,13 @@ void CRClient::ConSpectatorAddTracker(IConsole::IResult *pResult, void *pUserDat
 		{
 			char aBuf[64];
 			str_format(aBuf, sizeof(aBuf), "tracker %s", PlayerName);
-			pThis->GameClient()->Console()->ExecuteLine(aBuf);
+			pThis->GameClient()->Console()->ExecuteLine(aBuf, IConsole::CLIENT_ID_UNSPECIFIED);
 		}
 		else
 		{
 			char aBuf[64];
 			str_format(aBuf, sizeof(aBuf), "tracker_remove %s", PlayerName);
-			pThis->GameClient()->Console()->ExecuteLine(aBuf);
+			pThis->GameClient()->Console()->ExecuteLine(aBuf, IConsole::CLIENT_ID_UNSPECIFIED);
 		}
 	}
 }

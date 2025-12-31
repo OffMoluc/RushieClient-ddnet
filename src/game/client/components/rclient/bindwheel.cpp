@@ -1,12 +1,12 @@
+#include "bindwheel.h"
+
 #include <engine/graphics.h>
 #include <engine/shared/config.h>
-#include <generated/protocol.h>
 
+#include <game/client/animstate.h>
 #include <game/client/gameclient.h>
 #include <game/client/render.h>
 #include <game/client/ui.h>
-
-#include "bindwheel.h"
 
 CBindWheelSpec::CBindWheelSpec()
 {
@@ -93,9 +93,9 @@ void CBindWheelSpec::RemoveBind(const char *pName, const char *pCommand)
 	CBind Bind;
 	str_copy(Bind.m_aName, pName);
 	str_copy(Bind.m_aCommand, pCommand);
-	auto it = std::find(m_vBinds.begin(), m_vBinds.end(), Bind);
-	if(it != m_vBinds.end())
-		m_vBinds.erase(it);
+	auto It = std::find(m_vBinds.begin(), m_vBinds.end(), Bind);
+	if(It != m_vBinds.end())
+		m_vBinds.erase(It);
 }
 
 void CBindWheelSpec::RemoveBind(int Index)
@@ -170,6 +170,9 @@ void CBindWheelSpec::OnRender()
 			return 1.0f;
 		return (t < 0.5f) ? (2.0f * t * t) : (1.0f - std::pow(-2.0f * t + 2.0f, 2) / 2.0f);
 	};
+	static const auto PositiveMod = [](float x, float y) -> float {
+		return std::fmod(x + y, y);
+	};
 
 	static const float s_InnerOuterMouseBoundaryRadius = 110.0f;
 	static const float s_OuterMouseLimitRadius = 170.0f;
@@ -185,11 +188,7 @@ void CBindWheelSpec::OnRender()
 	if(AnimationTime != 0.0f)
 	{
 		for(float &Time : m_aAnimationTimeItems)
-		{
-			Time -= Client()->RenderFrameTime();
-			if(Time <= 0.0f)
-				Time = 0.0f;
-		}
+			Time = std::max(0.0f, Time - Client()->RenderFrameTime());
 	}
 
 	if(!m_Active)
@@ -264,12 +263,9 @@ void CBindWheelSpec::OnRender()
 	}
 	else
 	{
-		float SegmentAngle = 2.0f * pi / SegmentCount;
-		float SelectedAngle = angle(GameClient()->m_Emoticon.m_SelectorMouse) + SegmentAngle / 2.0f;
-		if(SelectedAngle < 0.0f)
-			SelectedAngle += 2.0f * pi;
+		const float SelectedAngle = angle(GameClient()->m_Emoticon.m_SelectorMouse);
 		if(length(GameClient()->m_Emoticon.m_SelectorMouse) > s_InnerOuterMouseBoundaryRadius)
-			m_SelectedBind = (int)(SelectedAngle / (2.0f * pi) * SegmentCount);
+			m_SelectedBind = PositiveMod(std::round(SelectedAngle / (2.0f * pi) * SegmentCount), SegmentCount);
 		else
 			m_SelectedBind = -1;
 	}
@@ -291,12 +287,11 @@ void CBindWheelSpec::OnRender()
 	Graphics()->QuadsEnd();
 
 	Graphics()->WrapClamp();
-	const float Theta = pi * 2.0f / m_vBinds.size();
+	const float Theta = pi * 2.0f / std::max<float>(1.0f, m_vBinds.size()); // Prevent divide by 0
 	for(int i = 0; i < static_cast<int>(m_vBinds.size()); i++)
 	{
 		const CBind &Bind = m_vBinds[i];
 		const float Angle = Theta * i;
-		const vec2 Pos = direction(Angle) * s_OuterItemRadius * aAnimationPhase[1];
 		const float Phase = ItemAnimationTime == 0.0f ? (i == m_SelectedBind ? 1.0f : 0.0f) : QuadEaseInOut(m_aAnimationTimeItems[i] / ItemAnimationTime);
 		const float FontSize = (s_FontSize + Phase * (s_FontSizeSelected - s_FontSize)) * aAnimationPhase[1];
 		const char *pName = Bind.m_aName;
@@ -309,8 +304,9 @@ void CBindWheelSpec::OnRender()
 		{
 			TextRender()->TextColor(1.0f, 1.0f, 1.0f, aAnimationPhase[1]);
 		}
-		float Width = TextRender()->TextWidth(FontSize, pName);
-		TextRender()->Text(Screen.w / 2.0f + Pos.x - Width / 2.0f, Screen.h / 2.0f + Pos.y - FontSize / 2.0f, FontSize, pName);
+		const vec2 Pos = vec2(Screen.x, Screen.y) + vec2(Screen.w, Screen.h) / 2.0f + direction(Angle) * s_OuterItemRadius * aAnimationPhase[1];
+		const CUIRect Rect = CUIRect{Pos.x - 50.0f, Pos.y - 50.0f, 100.0f, 100.0f};
+		Ui()->DoLabel(&Rect, pName, FontSize, TEXTALIGN_MC);
 	}
 	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
 	Graphics()->WrapNormal();
@@ -327,7 +323,7 @@ void CBindWheelSpec::OnRender()
 
 void CBindWheelSpec::ExecuteBind(int Bind)
 {
-	Console()->ExecuteLine(m_vBinds[Bind].m_aCommand);
+	Console()->ExecuteLine(m_vBinds[Bind].m_aCommand, IConsole::CLIENT_ID_UNSPECIFIED);
 }
 void CBindWheelSpec::ExecuteHoveredBind()
 {
@@ -370,7 +366,7 @@ void CBindWheelSpec::ExecuteBindWithSpec(int Bind)
 		}
 
 		dbg_msg("bindwheel", "Executing command: %s", cmd.c_str());
-		Console()->ExecuteLine(cmd.c_str());
+		Console()->ExecuteLine(cmd.c_str(), IConsole::CLIENT_ID_UNSPECIFIED);
 	}
 }
 void CBindWheelSpec::ConfigSaveCallback(IConfigManager *pConfigManager, void *pUserData)
