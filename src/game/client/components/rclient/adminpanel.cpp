@@ -1,3 +1,4 @@
+#include <engine/console.h>
 #include <engine/graphics.h>
 #include <engine/shared/config.h>
 #include <game/client/gameclient.h>
@@ -135,13 +136,13 @@ void CAdminPanel::SetActive(bool Active)
 	{
 		m_Mouse.m_Unlocked = true;
 		m_WasSpecActive = GameClient()->m_Snap.m_SpecInfo.m_Active;
-		Console()->ExecuteLine("say /spec");
+		Console()->ExecuteLine("say /spec", IConsole::CLIENT_ID_UNSPECIFIED);
 	}
 	else
 	{
 		ResetState();
 		if(WasActive)
-			Console()->ExecuteLine("say /spec");
+			Console()->ExecuteLine("say /spec", IConsole::CLIENT_ID_UNSPECIFIED);
 	}
 }
 
@@ -150,7 +151,7 @@ void CAdminPanel::OnReset()
 	const bool WasActive = m_Active;
 	ResetState();
 	if(WasActive)
-		Console()->ExecuteLine("say /spec");
+		Console()->ExecuteLine("say /spec", IConsole::CLIENT_ID_UNSPECIFIED);
 }
 
 void CAdminPanel::OnRelease()
@@ -158,7 +159,7 @@ void CAdminPanel::OnRelease()
 	const bool WasActive = m_Active;
 	ResetState();
 	if(WasActive)
-		Console()->ExecuteLine("say /spec");
+		Console()->ExecuteLine("say /spec", IConsole::CLIENT_ID_UNSPECIFIED);
 }
 
 bool CAdminPanel::OnCursorMove(float x, float y, IInput::ECursorType CursorType)
@@ -952,7 +953,7 @@ void CAdminPanel::RenderPlayerPanelPopUpLastConfirm(CUIRect *pBase)
 	Ui()->DoLabel(&Button, ("Yes"), SAdminPanelProperties::ms_FontSize, TEXTALIGN_MC);
 	if(DoButtonLogic(&Button))
 	{
-		GameClient()->Console()->ExecuteLine(aBuf);
+		GameClient()->Console()->ExecuteLine(aBuf, IConsole::CLIENT_ID_UNSPECIFIED);
 		if(g_Config.m_RiPlaySounds)
 			GameClient()->m_Sounds.Play(CSounds::CHN_GUI, SOUND_GRENADE_EXPLODE, 1.0f);
 		OnReset();
