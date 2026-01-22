@@ -1547,7 +1547,7 @@ void CPlayers::OnRender()
 				aRenderInfo[i].m_ColorBody = ColorRGBA(1, 1, 1);
 				aRenderInfo[i].m_ColorFeet = ColorRGBA(1, 1, 1);
 
-				if(g_Config.m_TcColorFreeze)
+				if(g_Config.m_TcColorFreeze && (!g_Config.m_RiColorFreezeNoYourself || i != GameClient()->m_Snap.m_LocalClientId))
 				{
 					bool CustomColor = GameClient()->m_aClients[i].m_RenderInfo.m_CustomColoredSkin;
 					aRenderInfo[i].m_CustomColoredSkin = true;
