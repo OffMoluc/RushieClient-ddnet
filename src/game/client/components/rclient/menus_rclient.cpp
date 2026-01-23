@@ -844,14 +844,6 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 		Column.HSplitTop(MarginSmall, nullptr, &Column);
 		Column.HSplitTop(LineSize, &Label, &Column);
 		DoLine_KeyReader(Label, s_ReaderButtonSpectatorDown, s_ClearButtonSpectatorDown, RCLocalize("Move down"), "+ri_spec_down");
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-		static std::vector<CButtonContainer> s_vSpectatorSortButtonContainers = {{}, {}, {}};
-		DoLine_RadioMenu(Column, RCLocalize("Sort by id:", "ScoreboardSorting"),
-			s_vSpectatorSortButtonContainers,
-			{RCLocalize("Default", "ScoreboardSorting"), RCLocalize("Teams", "ScoreboardSorting"), RCLocalize("All", "ScoreboardSorting")},
-			{0, 1, 2},
-			g_Config.m_RiSpectatorSortById);
-		EndSection(Column);
 	}
 	else
 	{
@@ -865,9 +857,19 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 		Column.HSplitTop(LineSize, &Button, &Column);
 		Column.HSplitTop(MarginSmall, &Button, &Column);
 		Column.HSplitTop(LineSize, &Button, &Column);
-		Column.HSplitTop(MarginSmall, &Button, &Column);
-
 	}
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	static std::vector<CButtonContainer> s_vSpectatorSortButtonContainers = {{}, {}, {}};
+	DoLine_RadioMenu(Column, RCLocalize("Sort by id:", "ScoreboardSorting"),
+		s_vSpectatorSortButtonContainers,
+		{RCLocalize("Default", "ScoreboardSorting"), RCLocalize("Teams", "ScoreboardSorting"), RCLocalize("All", "ScoreboardSorting")},
+		{0, 1, 2},
+		g_Config.m_RiSpectatorSortById);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	static CButtonContainer s_ReaderButtonFindTp, s_ClearButtonFindTp;
+	DoLine_KeyReader(Label, s_ReaderButtonFindTp, s_ClearButtonFindTp, RCLocalize("Find teleport"), "ri_goto_tele_cursor");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	EndSection(Column);
 
 	// ***** Chat Bubbles ***** //
