@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <vector>
 
 static bool VoiceListMatch(const char *pList, const char *pName)
 {
@@ -152,12 +153,22 @@ bool CRClientVoice::EnsureAudio()
 	if(m_CaptureDevice && m_OutputDevice && m_pEncoder)
 		return true;
 
-	SDL_AudioSpec Want = {};
-	Want.freq = VOICE_SAMPLE_RATE;
-	Want.format = AUDIO_S16;
-	Want.channels = VOICE_CHANNELS;
-	Want.samples = VOICE_FRAME_SAMPLES;
-	Want.callback = nullptr;
+	SDL_AudioSpec WantCapture = {};
+	WantCapture.freq = VOICE_SAMPLE_RATE;
+	WantCapture.format = AUDIO_S16;
+	WantCapture.channels = VOICE_CHANNELS;
+	WantCapture.samples = VOICE_FRAME_SAMPLES;
+	WantCapture.callback = nullptr;
+
+	const bool WantStereo = g_Config.m_RiVoiceStereo != 0;
+	const int DesiredOutputChannels = WantStereo ? 2 : 1;
+
+	SDL_AudioSpec WantOutput = {};
+	WantOutput.freq = VOICE_SAMPLE_RATE;
+	WantOutput.format = AUDIO_S16;
+	WantOutput.channels = DesiredOutputChannels;
+	WantOutput.samples = VOICE_FRAME_SAMPLES;
+	WantOutput.callback = nullptr;
 
 	if(str_comp(m_aInputDeviceName, g_Config.m_RiVoiceInputDevice) != 0)
 	{
@@ -179,6 +190,16 @@ bool CRClientVoice::EnsureAudio()
 		str_copy(m_aOutputDeviceName, g_Config.m_RiVoiceOutputDevice, sizeof(m_aOutputDeviceName));
 	}
 
+	if(m_OutputStereo != WantStereo)
+	{
+		if(m_OutputDevice)
+		{
+			SDL_CloseAudioDevice(m_OutputDevice);
+			m_OutputDevice = 0;
+		}
+		m_OutputStereo = WantStereo;
+	}
+
 	const char *pInputName = FindDeviceName(true, m_aInputDeviceName);
 	if(m_aInputDeviceName[0] != '\0' && pInputName == nullptr)
 	{
@@ -195,7 +216,7 @@ bool CRClientVoice::EnsureAudio()
 
 	if(!m_CaptureDevice)
 	{
-		m_CaptureDevice = SDL_OpenAudioDevice(pInputName, 1, &Want, &m_CaptureSpec, 0);
+		m_CaptureDevice = SDL_OpenAudioDevice(pInputName, 1, &WantCapture, &m_CaptureSpec, 0);
 		if(!m_CaptureDevice)
 		{
 			log_error("voice", "Failed to open capture device: %s", SDL_GetError());
@@ -206,7 +227,7 @@ bool CRClientVoice::EnsureAudio()
 
 	if(!m_OutputDevice)
 	{
-		m_OutputDevice = SDL_OpenAudioDevice(pOutputName, 0, &Want, &m_OutputSpec, 0);
+		m_OutputDevice = SDL_OpenAudioDevice(pOutputName, 0, &WantOutput, &m_OutputSpec, 0);
 		if(!m_OutputDevice)
 		{
 			log_error("voice", "Failed to open output device: %s", SDL_GetError());
@@ -545,17 +566,48 @@ void CRClientVoice::ProcessIncoming()
 		if(Volume <= 0.0f)
 			continue;
 
-		for(int i = 0; i < Samples; i++)
+		const bool StereoEnabled = g_Config.m_RiVoiceStereo != 0;
+		const int OutputChannels = m_OutputSpec.channels > 0 ? m_OutputSpec.channels : (StereoEnabled ? 2 : 1);
+		const float Pan = StereoEnabled ? std::clamp((SenderPos.x - LocalPos.x) / Radius, -1.0f, 1.0f) : 0.0f;
+		const float LeftGain = Volume * (Pan <= 0.0f ? 1.0f : (1.0f - Pan));
+		const float RightGain = Volume * (Pan >= 0.0f ? 1.0f : (1.0f + Pan));
+
+		if(OutputChannels >= 2)
 		{
-			const int Sample = (int)(aPcm[i] * Volume);
-			aPcm[i] = (int16_t)std::clamp(Sample, -32768, 32767);
+			const int FrameCount = Samples;
+			std::vector<int16_t> aOut(FrameCount * OutputChannels);
+			for(int i = 0; i < FrameCount; i++)
+			{
+				const int LeftSample = (int)(aPcm[i] * LeftGain);
+				const int RightSample = (int)(aPcm[i] * RightGain);
+				aOut[i * OutputChannels] = (int16_t)std::clamp(LeftSample, -32768, 32767);
+				aOut[i * OutputChannels + 1] = (int16_t)std::clamp(RightSample, -32768, 32767);
+				for(int ch = 2; ch < OutputChannels; ch++)
+				{
+					aOut[i * OutputChannels + ch] = aOut[i * OutputChannels];
+				}
+			}
+
+			const int MaxQueued = VOICE_SAMPLE_RATE * sizeof(int16_t) * OutputChannels * 2;
+			if((int)SDL_GetQueuedAudioSize(m_OutputDevice) > MaxQueued)
+				SDL_ClearQueuedAudio(m_OutputDevice);
+
+			SDL_QueueAudio(m_OutputDevice, aOut.data(), (int)aOut.size() * sizeof(int16_t));
 		}
+		else
+		{
+			for(int i = 0; i < Samples; i++)
+			{
+				const int Sample = (int)(aPcm[i] * Volume);
+				aPcm[i] = (int16_t)std::clamp(Sample, -32768, 32767);
+			}
 
-		const int MaxQueued = VOICE_SAMPLE_RATE * sizeof(int16_t) * 2;
-		if((int)SDL_GetQueuedAudioSize(m_OutputDevice) > MaxQueued)
-			SDL_ClearQueuedAudio(m_OutputDevice);
+			const int MaxQueued = VOICE_SAMPLE_RATE * sizeof(int16_t) * 2;
+			if((int)SDL_GetQueuedAudioSize(m_OutputDevice) > MaxQueued)
+				SDL_ClearQueuedAudio(m_OutputDevice);
 
-		SDL_QueueAudio(m_OutputDevice, aPcm, Samples * sizeof(int16_t));
+			SDL_QueueAudio(m_OutputDevice, aPcm, Samples * sizeof(int16_t));
+		}
 
 		if(g_Config.m_RiVoiceDebug)
 		{

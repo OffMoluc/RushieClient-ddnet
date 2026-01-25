@@ -38,6 +38,7 @@ class CRClientVoice
 	SDL_AudioSpec m_OutputSpec = {};
 	char m_aInputDeviceName[128] = {0};
 	char m_aOutputDeviceName[128] = {0};
+	bool m_OutputStereo = true;
 
 	OpusEncoder *m_pEncoder = nullptr;
 	std::array<SVoicePeer, MAX_CLIENTS> m_aPeers = {};

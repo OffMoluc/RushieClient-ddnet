@@ -41,6 +41,7 @@ MACRO_CONFIG_INT(RiVoiceEnable, ri_voice_enable, 0, 0, 1, CFGFLAG_CLIENT | CFGFL
 MACRO_CONFIG_STR(RiVoiceServer, ri_voice_server, 128, "127.0.0.1:9001", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Voice server address host:port")
 MACRO_CONFIG_STR(RiVoiceInputDevice, ri_voice_input_device, 128, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Voice input device name (empty = default)")
 MACRO_CONFIG_STR(RiVoiceOutputDevice, ri_voice_output_device, 128, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "Voice output device name (empty = default)")
+MACRO_CONFIG_INT(RiVoiceStereo, ri_voice_stereo, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Voice output stereo (0=mono, 1=stereo)")
 MACRO_CONFIG_INT(RiVoiceRadius, ri_voice_radius, 50, 1, 400, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Voice radius in tiles")
 MACRO_CONFIG_INT(RiVoiceVolume, ri_voice_volume, 100, 0, 200, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Voice volume in percent")
 MACRO_CONFIG_INT(RiVoiceIgnoreDistance, ri_voice_ignore_distance, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Ignore distance attenuation for voice chat")
