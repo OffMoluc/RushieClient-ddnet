@@ -1,4 +1,7 @@
 #include <base/log.h>
+#include <base/str.h>
+
+#include <cctype>
 
 #include <game/client/animstate.h>
 #include <game/client/components/chat.h>
@@ -59,6 +62,9 @@ void CRClient::OnConsoleInit()
 	Console()->Register("ri_voice_list_devices", "", CFGFLAG_CLIENT, ConVoiceListDevices, this, "List voice input/output devices");
 	Console()->Register("ri_voice_clear_input", "", CFGFLAG_CLIENT, ConVoiceClearInput, this, "Use default voice input device");
 	Console()->Register("ri_voice_clear_output", "", CFGFLAG_CLIENT, ConVoiceClearOutput, this, "Use default voice output device");
+	Console()->Register("ri_voice_set_volume", "s[name] i[percent]", CFGFLAG_CLIENT, ConVoiceSetVolume, this, "Set per-name voice volume (0-200)");
+	Console()->Register("ri_voice_clear_volume", "s[name]", CFGFLAG_CLIENT, ConVoiceClearVolume, this, "Remove per-name voice volume");
+	Console()->Register("ri_voice_list_volumes", "", CFGFLAG_CLIENT, ConVoiceListVolumes, this, "List per-name voice volumes");
 	Console()->Chain(
 		"ri_regex_player_whitelist", [](IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData) {
 			if(pResult->NumArguments() == 1)
@@ -1525,6 +1531,76 @@ void CRClient::AppendListItem(char *pList, int ListSize, const char *pItem)
 	str_append(pList, pItem, ListSize);
 }
 
+static void RemoveVoiceNameVolume(char *pList, int ListSize, const char *pName)
+{
+	if(!pName || pName[0] == '\0')
+		return;
+
+	char aNew[512];
+	aNew[0] = '\0';
+
+	const char *p = pList;
+	while(*p)
+	{
+		while(*p == ',' || std::isspace((unsigned char)*p))
+			p++;
+		if(*p == '\0')
+			break;
+
+		const char *pStart = p;
+		while(*p && *p != ',')
+			p++;
+		const char *pEnd = p;
+		while(pEnd > pStart && std::isspace((unsigned char)pEnd[-1]))
+			pEnd--;
+
+		const char *pTokenStart = pStart;
+		while(pTokenStart < pEnd && std::isspace((unsigned char)*pTokenStart))
+			pTokenStart++;
+		if(pEnd <= pTokenStart)
+			continue;
+
+		const char *pSep = nullptr;
+		for(const char *q = pTokenStart; q < pEnd; q++)
+		{
+			if(*q == '=' || *q == ':')
+			{
+				pSep = q;
+				break;
+			}
+		}
+
+		bool Match = false;
+		if(pSep)
+		{
+			const char *pNameEnd = pSep;
+			while(pNameEnd > pTokenStart && std::isspace((unsigned char)pNameEnd[-1]))
+				pNameEnd--;
+			const int NameLen = (int)(pNameEnd - pTokenStart);
+			if(NameLen > 0)
+			{
+				char aToken[MAX_NAME_LENGTH];
+				str_truncate(aToken, sizeof(aToken), pTokenStart, NameLen);
+				if(str_comp_nocase(aToken, pName) == 0)
+					Match = true;
+			}
+		}
+
+		if(Match)
+			continue;
+
+		char aTokenFull[128];
+		str_truncate(aTokenFull, sizeof(aTokenFull), pTokenStart, (int)(pEnd - pTokenStart));
+		if(aTokenFull[0] == '\0')
+			continue;
+		if(aNew[0] != '\0')
+			str_append(aNew, ",", sizeof(aNew));
+		str_append(aNew, aTokenFull, sizeof(aNew));
+	}
+
+	str_copy(pList, aNew, ListSize);
+}
+
 void CRClient::ConVoiceAllow(IConsole::IResult *pResult, void *pUserData)
 {
 	CRClient *pSelf = static_cast<CRClient *>(pUserData);
@@ -1539,6 +1615,47 @@ void CRClient::ConVoiceBlock(IConsole::IResult *pResult, void *pUserData)
 	const char *pItem = pResult->GetString(0);
 	pSelf->AppendListItem(g_Config.m_RiVoiceBlacklist, sizeof(g_Config.m_RiVoiceBlacklist), pItem);
 	pSelf->GameClient()->Echo("Voice blacklist updated");
+}
+
+void CRClient::ConVoiceSetVolume(IConsole::IResult *pResult, void *pUserData)
+{
+	CRClient *pSelf = static_cast<CRClient *>(pUserData);
+	const char *pName = pResult->GetString(0);
+	int Percent = pResult->GetInteger(1);
+	if(Percent < 0)
+		Percent = 0;
+	if(Percent > 200)
+		Percent = 200;
+
+	RemoveVoiceNameVolume(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), pName);
+	if(pName && pName[0] != '\0')
+	{
+		char aItem[128];
+		str_format(aItem, sizeof(aItem), "%s=%d", pName, Percent);
+		pSelf->AppendListItem(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), aItem);
+		pSelf->GameClient()->Echo("Voice name volume set");
+	}
+}
+
+void CRClient::ConVoiceClearVolume(IConsole::IResult *pResult, void *pUserData)
+{
+	CRClient *pSelf = static_cast<CRClient *>(pUserData);
+	const char *pName = pResult->GetString(0);
+	RemoveVoiceNameVolume(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), pName);
+	pSelf->GameClient()->Echo("Voice name volume removed");
+}
+
+void CRClient::ConVoiceListVolumes(IConsole::IResult *pResult, void *pUserData)
+{
+	(void)pResult;
+	CRClient *pSelf = static_cast<CRClient *>(pUserData);
+	if(g_Config.m_RiVoiceNameVolumes[0] == '\0')
+	{
+		pSelf->GameClient()->Echo("Voice name volumes empty");
+		return;
+	}
+	pSelf->GameClient()->Echo("Voice name volumes:");
+	pSelf->GameClient()->Echo(g_Config.m_RiVoiceNameVolumes);
 }
 
 void CRClient::ConVoiceListDevices(IConsole::IResult *pResult, void *pUserData)

@@ -1,5 +1,9 @@
 #include <base/math.h>
 #include <base/system.h>
+#include <base/str.h>
+
+#include <algorithm>
+#include <cctype>
 
 #include <engine/graphics.h>
 #include <engine/shared/config.h>
@@ -12,6 +16,7 @@
 
 #include <game/client/components/menu_background.h>
 #include <game/client/components/menus.h>
+#include <game/client/animstate.h>
 #include <game/client/components/rclient/bindwheel.h>
 #include <game/client/components/tclient/bindchat.h>
 
@@ -27,6 +32,7 @@ enum
 	RCLIENT_TAB_NAMEPLATES_EDITOR,
 	RCLIENT_TAB_RCON,
 	RCLIENT_TAB_INFO,
+	RCLIENT_TAB_VOICE,
 	NUMBER_OF_RUSHIE_TABS
 };
 
@@ -38,6 +44,152 @@ static bool s_StartedTime = false;
 const float FontSize = 14.0f;
 const float EditBoxFontSize = 12.0f;
 const float LineSize = 20.0f;
+
+static void VoiceNameVolumesRemove(char *pList, int ListSize, const char *pName)
+{
+	if(!pName || pName[0] == '\0')
+		return;
+
+	char aNew[512];
+	aNew[0] = '\0';
+
+	const char *p = pList;
+	while(*p)
+	{
+		while(*p == ',' || std::isspace((unsigned char)*p))
+			p++;
+		if(*p == '\0')
+			break;
+
+		const char *pStart = p;
+		while(*p && *p != ',')
+			p++;
+		const char *pEnd = p;
+		while(pEnd > pStart && std::isspace((unsigned char)pEnd[-1]))
+			pEnd--;
+
+		const char *pTokenStart = pStart;
+		while(pTokenStart < pEnd && std::isspace((unsigned char)*pTokenStart))
+			pTokenStart++;
+		if(pEnd <= pTokenStart)
+			continue;
+
+		const char *pSep = nullptr;
+		for(const char *q = pTokenStart; q < pEnd; q++)
+		{
+			if(*q == '=' || *q == ':')
+			{
+				pSep = q;
+				break;
+			}
+		}
+
+		bool Match = false;
+		if(pSep)
+		{
+			const char *pNameEnd = pSep;
+			while(pNameEnd > pTokenStart && std::isspace((unsigned char)pNameEnd[-1]))
+				pNameEnd--;
+			const int NameLen = (int)(pNameEnd - pTokenStart);
+			if(NameLen > 0)
+			{
+				char aToken[MAX_NAME_LENGTH];
+				str_truncate(aToken, sizeof(aToken), pTokenStart, NameLen);
+				if(str_comp_nocase(aToken, pName) == 0)
+					Match = true;
+			}
+		}
+
+		if(Match)
+			continue;
+
+		char aTokenFull[128];
+		str_truncate(aTokenFull, sizeof(aTokenFull), pTokenStart, (int)(pEnd - pTokenStart));
+		if(aTokenFull[0] == '\0')
+			continue;
+		if(aNew[0] != '\0')
+			str_append(aNew, ",", sizeof(aNew));
+		str_append(aNew, aTokenFull, sizeof(aNew));
+	}
+
+	str_copy(pList, aNew, ListSize);
+}
+
+static void VoiceNameVolumesSet(char *pList, int ListSize, const char *pName, int Percent)
+{
+	if(!pName || pName[0] == '\0')
+		return;
+	Percent = std::clamp(Percent, 0, 200);
+	VoiceNameVolumesRemove(pList, ListSize, pName);
+	char aItem[128];
+	str_format(aItem, sizeof(aItem), "%s=%d", pName, Percent);
+	if(pList[0] != '\0')
+		str_append(pList, ",", ListSize);
+	str_append(pList, aItem, ListSize);
+}
+
+static bool VoiceNameVolumesGet(const char *pList, const char *pName, int &OutPercent)
+{
+	if(!pList || pList[0] == '\0' || !pName || pName[0] == '\0')
+		return false;
+
+	const char *p = pList;
+	while(*p)
+	{
+		while(*p == ',' || *p == ' ' || *p == '\t')
+			p++;
+		if(*p == '\0')
+			break;
+
+		const char *pStart = p;
+		while(*p && *p != ',')
+			p++;
+		const char *pEnd = p;
+		while(pEnd > pStart && std::isspace((unsigned char)pEnd[-1]))
+			pEnd--;
+		if(pEnd <= pStart)
+			continue;
+
+		const char *pSep = nullptr;
+		for(const char *q = pStart; q < pEnd; q++)
+		{
+			if(*q == '=' || *q == ':')
+			{
+				pSep = q;
+				break;
+			}
+		}
+		if(!pSep)
+			continue;
+
+		const char *pNameEnd = pSep;
+		while(pNameEnd > pStart && std::isspace((unsigned char)pNameEnd[-1]))
+			pNameEnd--;
+		const char *pValueStart = pSep + 1;
+		while(pValueStart < pEnd && std::isspace((unsigned char)*pValueStart))
+			pValueStart++;
+
+		const int NameLen = (int)(pNameEnd - pStart);
+		const int ValueLen = (int)(pEnd - pValueStart);
+		if(NameLen <= 0 || ValueLen <= 0)
+			continue;
+
+		char aToken[MAX_NAME_LENGTH];
+		str_truncate(aToken, sizeof(aToken), pStart, NameLen);
+		if(str_comp_nocase(aToken, pName) != 0)
+			continue;
+
+		char aValue[16];
+		str_truncate(aValue, sizeof(aValue), pValueStart, ValueLen);
+		int Percent = str_toint(aValue);
+		Percent = std::clamp(Percent, 0, 200);
+		OutPercent = Percent;
+		return true;
+	}
+
+	return false;
+}
+
 const float ColorPickerLineSize = 25.0f;
 const float HeadlineFontSize = 20.0f;
 
@@ -104,7 +256,8 @@ void CMenus::RenderSettingsRushie(CUIRect MainView)
 		RCLocalize("Bindwheel in spec"),
 		RCLocalize("Nameplate editor"),
 		RCLocalize("RCON"),
-		RCLocalize("Info")};
+		RCLocalize("Info"),
+		RCLocalize("Voice mix")};
 
 	for(int Tab = 0; Tab < NUMBER_OF_RUSHIE_TABS; ++Tab)
 	{
@@ -141,7 +294,80 @@ void CMenus::RenderSettingsRushie(CUIRect MainView)
 	{
 		RenderSettingsRushieInfo(MainView);
 	}
+	if(s_CurCustomTab == RCLIENT_TAB_VOICE)
+	{
+		RenderSettingsRushieVoiceVolumes(MainView);
+	}
 }
+void CMenus::RenderSettingsRushieVoiceVolumes(CUIRect MainView)
+{
+	static CScrollRegion s_ScrollRegion;
+	vec2 ScrollOffset(0.0f, 0.0f);
+	CScrollRegionParams ScrollParams;
+	ScrollParams.m_ScrollUnit = 120.0f;
+	ScrollParams.m_Flags = CScrollRegionParams::FLAG_CONTENT_STATIC_WIDTH;
+	ScrollParams.m_ScrollbarMargin = 5.0f;
+	s_ScrollRegion.Begin(&MainView, &ScrollOffset, &ScrollParams);
+
+	MainView.y += ScrollOffset.y;
+
+	CUIRect Header, Row, SkinRect, RightRect, TextRect, SliderRect, NameRect, SkinNameRect;
+	MainView.HSplitTop(HeadlineHeight, &Header, &MainView);
+	Ui()->DoLabel(&Header, RCLocalize("Voice mix"), HeadlineFontSize, TEXTALIGN_MC);
+	MainView.HSplitTop(MarginSmall, nullptr, &MainView);
+
+	int VisibleCount = 0;
+	const float RowHeight = LineSize * 2.0f;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		const auto &Client = GameClient()->m_aClients[i];
+		if(!Client.m_Active || Client.m_aName[0] == '\0')
+			continue;
+
+		MainView.HSplitTop(RowHeight, &Row, &MainView);
+		if(!s_ScrollRegion.AddRect(Row))
+			continue;
+		VisibleCount++;
+
+		Row.VSplitLeft(RowHeight, &SkinRect, &RightRect);
+		RightRect.HSplitMid(&TextRect, &SliderRect);
+		TextRect.HSplitMid(&NameRect, &SkinNameRect);
+
+		CTeeRenderInfo TeeRenderInfo = Client.m_RenderInfo;
+		TeeRenderInfo.m_Size = RowHeight;
+		RenderTools()->RenderTee(CAnimState::GetIdle(), &TeeRenderInfo, EMOTE_NORMAL, vec2(1, 0), SkinRect.Center());
+
+		Ui()->DoLabel(&NameRect, Client.m_aName, FontSize, TEXTALIGN_ML);
+		Ui()->DoLabel(&SkinNameRect, Client.m_aSkinName, FontSize * 0.9f, TEXTALIGN_ML);
+
+		int Volume = 100;
+		VoiceNameVolumesGet(g_Config.m_RiVoiceNameVolumes, Client.m_aName, Volume);
+		if(Ui()->DoScrollbarOption(&GameClient()->m_aClients[i], &Volume, &SliderRect, RCLocalize("Volume"), 0, 200))
+		{
+			if(Volume == 100)
+				VoiceNameVolumesRemove(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), Client.m_aName);
+			else
+				VoiceNameVolumesSet(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), Client.m_aName, Volume);
+		}
+
+		MainView.HSplitTop(MarginSmall, nullptr, &MainView);
+	}
+
+	if(VisibleCount == 0)
+	{
+		MainView.HSplitTop(LineSize, &Header, &MainView);
+		Ui()->DoLabel(&Header, RCLocalize("No active players"), FontSize, TEXTALIGN_ML);
+	}
+
+	CUIRect ScrollRegion;
+	ScrollRegion.x = MainView.x;
+	ScrollRegion.y = MainView.y + MarginSmall;
+	ScrollRegion.w = MainView.w;
+	ScrollRegion.h = 0.0f;
+	s_ScrollRegion.AddRect(ScrollRegion);
+	s_ScrollRegion.End();
+}
+
 void CMenus::RenderSettingsRushieInfo(CUIRect MainView)
 {
 	CUIRect LeftView, RightView, Button, Label, LowerLeftView;
@@ -223,6 +449,9 @@ void CMenus::RenderSettingsRushieInfo(CUIRect MainView)
 	static int s_ShowNameplatesEditor = IsFlagSet(g_Config.m_RiRClientSettingsTabs, RCLIENT_TAB_NAMEPLATES_EDITOR);
 	DoButton_CheckBoxAutoVMarginAndSet(&s_ShowNameplatesEditor, RCLocalize("Nameplate editor"), &s_ShowNameplatesEditor, &LeftSettings, LineSize);
 	SetFlag(g_Config.m_RiRClientSettingsTabs, RCLIENT_TAB_NAMEPLATES_EDITOR, s_ShowNameplatesEditor);
+	static int s_ShowVoice = IsFlagSet(g_Config.m_RiRClientSettingsTabs, RCLIENT_TAB_VOICE);
+	DoButton_CheckBoxAutoVMarginAndSet(&s_ShowVoice, RCLocalize("Voice mix"), &s_ShowVoice, &RightSettings, LineSize);
+	SetFlag(g_Config.m_RiRClientSettingsTabs, RCLIENT_TAB_VOICE, s_ShowVoice);
 }
 
 void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
@@ -782,6 +1011,69 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceStereo, RCLocalize("Stereo output (pan left/right)"), &g_Config.m_RiVoiceStereo, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceFilterEnable, RCLocalize("Voice filter (HPF+compressor+limiter)"), &g_Config.m_RiVoiceFilterEnable, &Column, LineSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Ui()->DoLabel(&Label, RCLocalize("Filter presets"), FontSize, TEXTALIGN_ML);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	CUIRect ButtonSoft, ButtonBalanced, ButtonStrong;
+	Button.VSplitLeft(Button.w / 3.0f - MarginSmall, &ButtonSoft, &Button);
+	Button.VSplitLeft(MarginSmall, nullptr, &Button);
+	Button.VSplitLeft(Button.w / 2.0f - MarginSmall, &ButtonBalanced, &Button);
+	Button.VSplitLeft(MarginSmall, nullptr, &ButtonStrong);
+
+	static CButtonContainer s_VoiceFilterSoft, s_VoiceFilterBalanced, s_VoiceFilterStrong;
+	if(DoButton_Menu(&s_VoiceFilterSoft, RCLocalize("Soft"), 0, &ButtonSoft))
+	{
+		g_Config.m_RiVoiceCompThreshold = 25;
+		g_Config.m_RiVoiceCompRatio = 20;
+		g_Config.m_RiVoiceCompAttackMs = 15;
+		g_Config.m_RiVoiceCompReleaseMs = 150;
+		g_Config.m_RiVoiceCompMakeup = 120;
+		g_Config.m_RiVoiceLimiter = 70;
+	}
+	if(DoButton_Menu(&s_VoiceFilterBalanced, RCLocalize("Balanced"), 0, &ButtonBalanced))
+	{
+		g_Config.m_RiVoiceCompThreshold = 20;
+		g_Config.m_RiVoiceCompRatio = 25;
+		g_Config.m_RiVoiceCompAttackMs = 20;
+		g_Config.m_RiVoiceCompReleaseMs = 200;
+		g_Config.m_RiVoiceCompMakeup = 160;
+		g_Config.m_RiVoiceLimiter = 50;
+	}
+	if(DoButton_Menu(&s_VoiceFilterStrong, RCLocalize("Strong"), 0, &ButtonStrong))
+	{
+		g_Config.m_RiVoiceCompThreshold = 15;
+		g_Config.m_RiVoiceCompRatio = 40;
+		g_Config.m_RiVoiceCompAttackMs = 10;
+		g_Config.m_RiVoiceCompReleaseMs = 250;
+		g_Config.m_RiVoiceCompMakeup = 200;
+		g_Config.m_RiVoiceLimiter = 40;
+	}
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	static int s_ShowVoiceFilterAdvanced = 0;
+	DoButton_CheckBoxAutoVMarginAndSet(&s_ShowVoiceFilterAdvanced, RCLocalize("Show advanced filter settings"), &s_ShowVoiceFilterAdvanced, &Column, LineSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	if(s_ShowVoiceFilterAdvanced)
+	{
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompThreshold, &g_Config.m_RiVoiceCompThreshold, &Button, RCLocalize("Comp threshold (%)"), 1, 100);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompRatio, &g_Config.m_RiVoiceCompRatio, &Button, RCLocalize("Comp ratio (x0.1)"), 10, 80);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompAttackMs, &g_Config.m_RiVoiceCompAttackMs, &Button, RCLocalize("Comp attack (ms)"), 1, 100);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompReleaseMs, &g_Config.m_RiVoiceCompReleaseMs, &Button, RCLocalize("Comp release (ms)"), 10, 500);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompMakeup, &g_Config.m_RiVoiceCompMakeup, &Button, RCLocalize("Comp makeup (%)"), 0, 300);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceLimiter, &g_Config.m_RiVoiceLimiter, &Button, RCLocalize("Limiter (%)"), 10, 100);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+	}
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceShowIndicator, RCLocalize("Show voice indicator"), &g_Config.m_RiVoiceShowIndicator, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	if(g_Config.m_RiVoiceShowIndicator)
@@ -803,6 +1095,39 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(LineSize, &Button, &Column);
 	Ui()->DoScrollbarOption(&g_Config.m_RiVoiceVolume, &g_Config.m_RiVoiceVolume, &Button, RCLocalize("Voice volume"), 0, 200);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
+
+	static char s_aVoiceNameVolumeName[32];
+	static int s_VoiceNameVolumePercent = 100;
+	static CLineInput s_VoiceNameVolumeName;
+	static CButtonContainer s_VoiceNameVolumeSetButton, s_VoiceNameVolumeRemoveButton;
+	Column.HSplitTop(LineSize, &Button, &Column);
+	Button.VSplitLeft(120.0f, &Label, &Button);
+	Ui()->DoLabel(&Label, RCLocalize("Name volume"), FontSize, TEXTALIGN_ML);
+	s_VoiceNameVolumeName.SetBuffer(s_aVoiceNameVolumeName, sizeof(s_aVoiceNameVolumeName));
+	s_VoiceNameVolumeName.SetEmptyText(RCLocalize("Nickname"));
+	Ui()->DoEditBox(&s_VoiceNameVolumeName, &Button, EditBoxFontSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	Ui()->DoScrollbarOption(&s_VoiceNameVolumePercent, &s_VoiceNameVolumePercent, &Button, RCLocalize("Name volume (%)"), 0, 200);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	CUIRect ButtonLeft, ButtonRight;
+	Button.VSplitMid(&ButtonLeft, &ButtonRight, MarginSmall);
+	if(DoButton_Menu(&s_VoiceNameVolumeSetButton, RCLocalize("Set volume"), 0, &ButtonLeft))
+	{
+		VoiceNameVolumesSet(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), s_aVoiceNameVolumeName, s_VoiceNameVolumePercent);
+	}
+	if(DoButton_Menu(&s_VoiceNameVolumeRemoveButton, RCLocalize("Remove volume"), 0, &ButtonRight))
+	{
+		VoiceNameVolumesRemove(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), s_aVoiceNameVolumeName);
+	}
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	Ui()->DoLabel(&Label, RCLocalize("Example: Name=80,Other=120"), FontSize * 0.9f, TEXTALIGN_ML);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	Ui()->DoLabel(&Label, g_Config.m_RiVoiceNameVolumes[0] ? g_Config.m_RiVoiceNameVolumes : RCLocalize("Name volume list empty"), FontSize * 0.9f, TEXTALIGN_ML);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+
 	static CLineInput s_VoiceInput;
 	static CLineInput s_VoiceOutput;
 	s_VoiceInput.SetBuffer(g_Config.m_RiVoiceInputDevice, sizeof(g_Config.m_RiVoiceInputDevice));

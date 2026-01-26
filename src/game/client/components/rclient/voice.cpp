@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <vector>
 
 static bool VoiceListMatch(const char *pList, const char *pName)
@@ -46,6 +47,68 @@ static bool VoiceListMatch(const char *pList, const char *pName)
 		str_truncate(aToken, sizeof(aToken), pStart, Len);
 		if(str_comp_nocase(aToken, pName) == 0)
 			return true;
+	}
+
+	return false;
+}
+
+static bool VoiceNameVolume(const char *pList, const char *pName, int &OutPercent)
+{
+	if(!pList || pList[0] == '\0' || !pName || pName[0] == '\0')
+		return false;
+
+	const char *p = pList;
+	while(*p)
+	{
+		while(*p == ',' || *p == ' ' || *p == '\t')
+			p++;
+		if(*p == '\0')
+			break;
+
+		const char *pStart = p;
+		while(*p && *p != ',')
+			p++;
+		const char *pEnd = p;
+		while(pEnd > pStart && std::isspace((unsigned char)pEnd[-1]))
+			pEnd--;
+		if(pEnd <= pStart)
+			continue;
+
+		const char *pSep = nullptr;
+		for(const char *q = pStart; q < pEnd; q++)	
+		{
+			if(*q == '=' || *q == ':')
+			{
+				pSep = q;
+				break;
+			}
+		}
+		if(!pSep)
+			continue;
+
+		const char *pNameEnd = pSep;
+		while(pNameEnd > pStart && std::isspace((unsigned char)pNameEnd[-1]))
+			pNameEnd--;
+		const char *pValueStart = pSep + 1;
+		while(pValueStart < pEnd && std::isspace((unsigned char)*pValueStart))
+			pValueStart++;
+
+		const int NameLen = (int)(pNameEnd - pStart);
+		const int ValueLen = (int)(pEnd - pValueStart);
+		if(NameLen <= 0 || ValueLen <= 0)
+			continue;
+
+		char aToken[MAX_NAME_LENGTH];
+		str_truncate(aToken, sizeof(aToken), pStart, NameLen);
+		if(str_comp_nocase(aToken, pName) != 0)
+			continue;
+
+		char aValue[16];
+		str_truncate(aValue, sizeof(aValue), pValueStart, ValueLen);
+		int Percent = str_toint(aValue);
+		Percent = std::clamp(Percent, 0, 200);
+		OutPercent = Percent;
+		return true;
 	}
 
 	return false;
@@ -97,6 +160,51 @@ static float ReadFloat(const uint8_t *pBuf)
 	float Value = 0.0f;
 	mem_copy(&Value, pBuf, sizeof(Value));
 	return Value;
+}
+
+static void ApplyHpfCompressor(int16_t *pSamples, int Count, float &PrevIn, float &PrevOut, float &Env)
+{
+	if(!g_Config.m_RiVoiceFilterEnable)
+		return;
+
+	const float CutoffHz = 120.0f;
+	const float Rc = 1.0f / (2.0f * 3.14159265f * CutoffHz);
+	const float Dt = 1.0f / VOICE_SAMPLE_RATE;
+	const float Alpha = Rc / (Rc + Dt);
+
+	const float Threshold = std::clamp(g_Config.m_RiVoiceCompThreshold / 100.0f, 0.01f, 1.0f);
+	const float Ratio = std::max(1.0f, g_Config.m_RiVoiceCompRatio / 10.0f);
+	const float AttackSec = std::max(0.001f, g_Config.m_RiVoiceCompAttackMs / 1000.0f);
+	const float ReleaseSec = std::max(0.001f, g_Config.m_RiVoiceCompReleaseMs / 1000.0f);
+	const float MakeupGain = std::max(0.0f, g_Config.m_RiVoiceCompMakeup / 100.0f);
+	const float NoiseFloor = 0.02f;
+	const float Limiter = std::clamp(g_Config.m_RiVoiceLimiter / 100.0f, 0.05f, 1.0f);
+	const float AttackCoeff = 1.0f - std::exp(-1.0f / (AttackSec * VOICE_SAMPLE_RATE));
+	const float ReleaseCoeff = 1.0f - std::exp(-1.0f / (ReleaseSec * VOICE_SAMPLE_RATE));
+
+	for(int i = 0; i < Count; i++)
+	{
+		const float x = pSamples[i] / 32768.0f;
+		const float y = Alpha * (PrevOut + x - PrevIn);
+		PrevIn = x;
+		PrevOut = y;
+
+		const float AbsY = std::fabs(y);
+		if(AbsY > Env)
+			Env += (AbsY - Env) * AttackCoeff;
+		else
+			Env += (AbsY - Env) * ReleaseCoeff;
+
+		float Gain = 1.0f;
+		if(Env > Threshold)
+			Gain = (Threshold + (Env - Threshold) / Ratio) / Env;
+		if(Env > NoiseFloor)
+			Gain *= MakeupGain;
+
+		const float Out = std::clamp(y * Gain, -Limiter, Limiter);
+		const int Sample = (int)std::clamp(Out * 32767.0f, -32768.0f, 32767.0f);
+		pSamples[i] = (int16_t)Sample;
+	}
 }
 
 static bool ParseHostPort(const char *pAddrStr, char *pHost, size_t HostSize, int &Port)
@@ -324,6 +432,9 @@ void CRClientVoice::Shutdown()
 	}
 	m_ServerAddrValid = false;
 	m_aServerAddrStr[0] = '\0';
+	m_HpfPrevIn = 0.0f;
+	m_HpfPrevOut = 0.0f;
+	m_CompEnv = 0.0f;
 }
 
 void CRClientVoice::UpdateServerAddr()
@@ -428,6 +539,7 @@ void CRClientVoice::ProcessCapture()
 	{
 		int16_t aPcm[VOICE_FRAME_SAMPLES];
 		SDL_DequeueAudio(m_CaptureDevice, aPcm, VOICE_FRAME_BYTES);
+		ApplyHpfCompressor(aPcm, VOICE_FRAME_SAMPLES, m_HpfPrevIn, m_HpfPrevOut, m_CompEnv);
 
 		const int EncSize = opus_encode(m_pEncoder, aPcm, VOICE_FRAME_SAMPLES, aPayload, (int)sizeof(aPayload));
 		if(EncSize <= 0)
@@ -562,9 +674,17 @@ void CRClientVoice::ProcessIncoming()
 			continue;
 
 		const float RadiusFactor = g_Config.m_RiVoiceIgnoreDistance ? 1.0f : (1.0f - (Dist / Radius));
-		const float Volume = std::clamp(RadiusFactor * (g_Config.m_RiVoiceVolume / 100.0f), 0.0f, 2.0f);
+		float Volume = std::clamp(RadiusFactor * (g_Config.m_RiVoiceVolume / 100.0f), 0.0f, 2.0f);
 		if(Volume <= 0.0f)
 			continue;
+
+		int NameVolume = 100;
+		if(VoiceNameVolume(g_Config.m_RiVoiceNameVolumes, m_pGameClient->m_aClients[SenderId].m_aName, NameVolume))
+		{
+			Volume *= (NameVolume / 100.0f);
+			if(Volume <= 0.0f)
+				continue;
+		}
 
 		const bool StereoEnabled = g_Config.m_RiVoiceStereo != 0;
 		const int OutputChannels = m_OutputSpec.channels > 0 ? m_OutputSpec.channels : (StereoEnabled ? 2 : 1);

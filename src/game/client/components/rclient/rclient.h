@@ -55,6 +55,9 @@ class CRClient : public CComponent
 	static void ConVoiceListDevices(IConsole::IResult *pResult, void *pUserData);
 	static void ConVoiceClearInput(IConsole::IResult *pResult, void *pUserData);
 	static void ConVoiceClearOutput(IConsole::IResult *pResult, void *pUserData);
+	static void ConVoiceSetVolume(IConsole::IResult *pResult, void *pUserData);
+	static void ConVoiceClearVolume(IConsole::IResult *pResult, void *pUserData);
+	static void ConVoiceListVolumes(IConsole::IResult *pResult, void *pUserData);
 	void AppendListItem(char *pList, int ListSize, const char *pItem);
 
 	bool m_SpecMoveLeft = false;
