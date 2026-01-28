@@ -1000,173 +1000,6 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	EndSection(Column);
 
-	// ***** Voice ***** //
-	BeginSection(Column, MarginBetweenSections);
-	Column.HSplitTop(HeadlineHeight, &Label, &Column);
-	Ui()->DoLabel(&Label, RCLocalize("Voice"), HeadlineFontSize, TEXTALIGN_MC);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceEnable, RCLocalize("Enable voice chat"), &g_Config.m_RiVoiceEnable, &Column, LineSize);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceIgnoreDistance, RCLocalize("Ignore distance"), &g_Config.m_RiVoiceIgnoreDistance, &Column, LineSize);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceStereo, RCLocalize("Stereo output (pan left/right)"), &g_Config.m_RiVoiceStereo, &Column, LineSize);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceFilterEnable, RCLocalize("Voice filter (HPF+compressor+limiter)"), &g_Config.m_RiVoiceFilterEnable, &Column, LineSize);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	Ui()->DoLabel(&Label, RCLocalize("Filter presets"), FontSize, TEXTALIGN_ML);
-	Column.HSplitTop(LineSize, &Button, &Column);
-	CUIRect ButtonSoft, ButtonBalanced, ButtonStrong;
-	Button.VSplitLeft(Button.w / 3.0f - MarginSmall, &ButtonSoft, &Button);
-	Button.VSplitLeft(MarginSmall, nullptr, &Button);
-	Button.VSplitLeft(Button.w / 2.0f - MarginSmall, &ButtonBalanced, &Button);
-	Button.VSplitLeft(MarginSmall, nullptr, &ButtonStrong);
-
-	static CButtonContainer s_VoiceFilterSoft, s_VoiceFilterBalanced, s_VoiceFilterStrong;
-	if(DoButton_Menu(&s_VoiceFilterSoft, RCLocalize("Soft"), 0, &ButtonSoft))
-	{
-		g_Config.m_RiVoiceCompThreshold = 25;
-		g_Config.m_RiVoiceCompRatio = 20;
-		g_Config.m_RiVoiceCompAttackMs = 15;
-		g_Config.m_RiVoiceCompReleaseMs = 150;
-		g_Config.m_RiVoiceCompMakeup = 120;
-		g_Config.m_RiVoiceLimiter = 70;
-	}
-	if(DoButton_Menu(&s_VoiceFilterBalanced, RCLocalize("Balanced"), 0, &ButtonBalanced))
-	{
-		g_Config.m_RiVoiceCompThreshold = 20;
-		g_Config.m_RiVoiceCompRatio = 25;
-		g_Config.m_RiVoiceCompAttackMs = 20;
-		g_Config.m_RiVoiceCompReleaseMs = 200;
-		g_Config.m_RiVoiceCompMakeup = 160;
-		g_Config.m_RiVoiceLimiter = 50;
-	}
-	if(DoButton_Menu(&s_VoiceFilterStrong, RCLocalize("Strong"), 0, &ButtonStrong))
-	{
-		g_Config.m_RiVoiceCompThreshold = 15;
-		g_Config.m_RiVoiceCompRatio = 40;
-		g_Config.m_RiVoiceCompAttackMs = 10;
-		g_Config.m_RiVoiceCompReleaseMs = 250;
-		g_Config.m_RiVoiceCompMakeup = 200;
-		g_Config.m_RiVoiceLimiter = 40;
-	}
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	static int s_ShowVoiceFilterAdvanced = 0;
-	DoButton_CheckBoxAutoVMarginAndSet(&s_ShowVoiceFilterAdvanced, RCLocalize("Show advanced filter settings"), &s_ShowVoiceFilterAdvanced, &Column, LineSize);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	if(s_ShowVoiceFilterAdvanced)
-	{
-		Column.HSplitTop(LineSize, &Button, &Column);
-		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompThreshold, &g_Config.m_RiVoiceCompThreshold, &Button, RCLocalize("Comp threshold (%)"), 1, 100);
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-		Column.HSplitTop(LineSize, &Button, &Column);
-		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompRatio, &g_Config.m_RiVoiceCompRatio, &Button, RCLocalize("Comp ratio (x0.1)"), 10, 80);
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-		Column.HSplitTop(LineSize, &Button, &Column);
-		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompAttackMs, &g_Config.m_RiVoiceCompAttackMs, &Button, RCLocalize("Comp attack (ms)"), 1, 100);
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-		Column.HSplitTop(LineSize, &Button, &Column);
-		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompReleaseMs, &g_Config.m_RiVoiceCompReleaseMs, &Button, RCLocalize("Comp release (ms)"), 10, 500);
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-		Column.HSplitTop(LineSize, &Button, &Column);
-		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompMakeup, &g_Config.m_RiVoiceCompMakeup, &Button, RCLocalize("Comp makeup (%)"), 0, 300);
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-		Column.HSplitTop(LineSize, &Button, &Column);
-		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceLimiter, &g_Config.m_RiVoiceLimiter, &Button, RCLocalize("Limiter (%)"), 10, 100);
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-	}
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceShowIndicator, RCLocalize("Show voice indicator"), &g_Config.m_RiVoiceShowIndicator, &Column, LineSize);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	if(g_Config.m_RiVoiceShowIndicator)
-	{
-		CUIRect Rightoffset;
-		Column.VSplitLeft(25.0f, &Label, &Rightoffset);
-		Column.HSplitTop(LineSize, nullptr, &Column);
-		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceIndicatorAboveSelf, RCLocalize("Show indicator above you"), &g_Config.m_RiVoiceIndicatorAboveSelf, &Rightoffset, LineSize);
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-	}
-	else
-	{
-		Column.HSplitTop(LineSize, nullptr, &Column);
-		Column.HSplitTop(MarginSmall, nullptr, &Column);
-	}
-	Column.HSplitTop(LineSize, &Button, &Column);
-	Ui()->DoScrollbarOption(&g_Config.m_RiVoiceRadius, &g_Config.m_RiVoiceRadius, &Button, RCLocalize("Voice radius (tiles)"), 1, 200);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	Column.HSplitTop(LineSize, &Button, &Column);
-	Ui()->DoScrollbarOption(&g_Config.m_RiVoiceVolume, &g_Config.m_RiVoiceVolume, &Button, RCLocalize("Voice volume"), 0, 200);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-
-	static char s_aVoiceNameVolumeName[32];
-	static int s_VoiceNameVolumePercent = 100;
-	static CLineInput s_VoiceNameVolumeName;
-	static CButtonContainer s_VoiceNameVolumeSetButton, s_VoiceNameVolumeRemoveButton;
-	Column.HSplitTop(LineSize, &Button, &Column);
-	Button.VSplitLeft(120.0f, &Label, &Button);
-	Ui()->DoLabel(&Label, RCLocalize("Name volume"), FontSize, TEXTALIGN_ML);
-	s_VoiceNameVolumeName.SetBuffer(s_aVoiceNameVolumeName, sizeof(s_aVoiceNameVolumeName));
-	s_VoiceNameVolumeName.SetEmptyText(RCLocalize("Nickname"));
-	Ui()->DoEditBox(&s_VoiceNameVolumeName, &Button, EditBoxFontSize);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	Column.HSplitTop(LineSize, &Button, &Column);
-	Ui()->DoScrollbarOption(&s_VoiceNameVolumePercent, &s_VoiceNameVolumePercent, &Button, RCLocalize("Name volume (%)"), 0, 200);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	Column.HSplitTop(LineSize, &Button, &Column);
-	CUIRect ButtonLeft, ButtonRight;
-	Button.VSplitMid(&ButtonLeft, &ButtonRight, MarginSmall);
-	if(DoButton_Menu(&s_VoiceNameVolumeSetButton, RCLocalize("Set volume"), 0, &ButtonLeft))
-	{
-		VoiceNameVolumesSet(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), s_aVoiceNameVolumeName, s_VoiceNameVolumePercent);
-	}
-	if(DoButton_Menu(&s_VoiceNameVolumeRemoveButton, RCLocalize("Remove volume"), 0, &ButtonRight))
-	{
-		VoiceNameVolumesRemove(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), s_aVoiceNameVolumeName);
-	}
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	Column.HSplitTop(LineSize, &Label, &Column);
-	Ui()->DoLabel(&Label, RCLocalize("Example: Name=80,Other=120"), FontSize * 0.9f, TEXTALIGN_ML);
-	Column.HSplitTop(LineSize, &Label, &Column);
-	Ui()->DoLabel(&Label, g_Config.m_RiVoiceNameVolumes[0] ? g_Config.m_RiVoiceNameVolumes : RCLocalize("Name volume list empty"), FontSize * 0.9f, TEXTALIGN_ML);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-
-	static CLineInput s_VoiceInput;
-	static CLineInput s_VoiceOutput;
-	s_VoiceInput.SetBuffer(g_Config.m_RiVoiceInputDevice, sizeof(g_Config.m_RiVoiceInputDevice));
-	s_VoiceOutput.SetBuffer(g_Config.m_RiVoiceOutputDevice, sizeof(g_Config.m_RiVoiceOutputDevice));
-	Column.HSplitTop(LineSize, &Label, &Column);
-	DoEditBoxWithLabel(&s_VoiceInput, &Label, RCLocalize("Input device"), "", g_Config.m_RiVoiceInputDevice, sizeof(g_Config.m_RiVoiceInputDevice));
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	Column.HSplitTop(LineSize, &Label, &Column);
-	DoEditBoxWithLabel(&s_VoiceOutput, &Label, RCLocalize("Output device"), "", g_Config.m_RiVoiceOutputDevice, sizeof(g_Config.m_RiVoiceOutputDevice));
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	Column.HSplitTop(LineSize, &Label, &Column);
-	Ui()->DoLabel(&Label, RCLocalize("Use ri_voice_list_devices in console"), FontSize, TEXTALIGN_ML);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	static CButtonContainer s_ReaderButtonVoicePtt, s_ClearButtonVoicePtt;
-	Column.HSplitTop(LineSize, &Label, &Column);
-	DoLine_KeyReader(Label, s_ReaderButtonVoicePtt, s_ClearButtonVoicePtt, RCLocalize("Voice PTT"), "+ri_voice_ptt");
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	static std::vector<CButtonContainer> s_vVoiceWhiteListButtonContainers = {{}, {}, {}};
-	DoLine_RadioMenu(Column, RCLocalize("Block people with:", "VoiceChat"),
-		s_vVoiceWhiteListButtonContainers,
-		{RCLocalize("None", "VoiceChat"), RCLocalize("Whitelist", "VoiceChat"), RCLocalize("Blacklist", "VoiceChat")},
-		{0, 1, 2},
-		g_Config.m_RiVoiceListMode);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	for(CBindChat::CBindRclient &BindchatDefault : s_aDefaultBindChatRclientVoice)
-		DoBindchatDefault(Column, BindchatDefault);
-	Column.HSplitTop(MarginSmall, nullptr, &Column);
-	Column.HSplitTop(LineSize, &Button, &Column);
-	static CButtonContainer s_VoiceChatButton;
-	if(DoButtonLineSize_Menu(&s_VoiceChatButton, RCLocalize("Reset Voice Chatbinds"), 0, &Button, LineSize, false, 0, IGraphics::CORNER_ALL, 5.0f, 0.0f, ColorRGBA(0.5f, 0.0f, 0.0f, 0.25f)))
-	{
-		for(const CBindChat::CBindRclient &BindDefault : s_aDefaultBindChatRclientVoice)
-		{
-			GameClient()->m_BindChat.RemoveBindCommand(BindDefault.m_Bind.m_aCommand);
-			GameClient()->m_BindChat.AddBind(BindDefault.m_Bind);
-		}
-	}
-	EndSection(Column);
-
 	// ***** Laser Settings ***** //
 	BeginSection(Column, MarginBetweenSections);
 	Column.HSplitTop(HeadlineHeight, &Label, &Column);
@@ -1336,6 +1169,175 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(LineSize, &Button, &Column);
 	Ui()->DoScrollbarOption(&g_Config.m_RiEdgeInfoPosY, &g_Config.m_RiEdgeInfoPosY, &Button, RCLocalize("Edge info pos y"), 0, 100);
 	Column.HSplitTop(MarginSmall, &Button, &Column);
+	EndSection(Column);
+
+	// ***** Voice ***** //
+	BeginSection(Column, MarginBetweenSections);
+	Column.HSplitTop(HeadlineHeight, &Label, &Column);
+	Ui()->DoLabel(&Label, RCLocalize("Voice"), HeadlineFontSize, TEXTALIGN_MC);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceEnable, RCLocalize("Enable voice chat"), &g_Config.m_RiVoiceEnable, &Column, LineSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceIgnoreDistance, RCLocalize("Ignore distance"), &g_Config.m_RiVoiceIgnoreDistance, &Column, LineSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceStereo, RCLocalize("Stereo output (pan left/right)"), &g_Config.m_RiVoiceStereo, &Column, LineSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceFilterEnable, RCLocalize("Voice filter (HPF+compressor+limiter)"), &g_Config.m_RiVoiceFilterEnable, &Column, LineSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	Ui()->DoLabel(&Label, RCLocalize("Filter presets"), FontSize, TEXTALIGN_ML);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	CUIRect ButtonSoft, ButtonBalanced, ButtonStrong;
+	Button.VSplitLeft(Button.w / 3.0f - MarginSmall, &ButtonSoft, &Button);
+	Button.VSplitLeft(MarginSmall, nullptr, &Button);
+	Button.VSplitLeft(Button.w / 2.0f - MarginSmall, &ButtonBalanced, &Button);
+	Button.VSplitLeft(MarginSmall, nullptr, &ButtonStrong);
+
+	static CButtonContainer s_VoiceFilterSoft, s_VoiceFilterBalanced, s_VoiceFilterStrong;
+	if(DoButton_Menu(&s_VoiceFilterSoft, RCLocalize("Soft"), 0, &ButtonSoft))
+	{
+		g_Config.m_RiVoiceCompThreshold = 25;
+		g_Config.m_RiVoiceCompRatio = 20;
+		g_Config.m_RiVoiceCompAttackMs = 15;
+		g_Config.m_RiVoiceCompReleaseMs = 150;
+		g_Config.m_RiVoiceCompMakeup = 120;
+		g_Config.m_RiVoiceLimiter = 70;
+	}
+	if(DoButton_Menu(&s_VoiceFilterBalanced, RCLocalize("Balanced"), 0, &ButtonBalanced))
+	{
+		g_Config.m_RiVoiceCompThreshold = 20;
+		g_Config.m_RiVoiceCompRatio = 25;
+		g_Config.m_RiVoiceCompAttackMs = 20;
+		g_Config.m_RiVoiceCompReleaseMs = 200;
+		g_Config.m_RiVoiceCompMakeup = 160;
+		g_Config.m_RiVoiceLimiter = 50;
+	}
+	if(DoButton_Menu(&s_VoiceFilterStrong, RCLocalize("Strong"), 0, &ButtonStrong))
+	{
+		g_Config.m_RiVoiceCompThreshold = 15;
+		g_Config.m_RiVoiceCompRatio = 40;
+		g_Config.m_RiVoiceCompAttackMs = 10;
+		g_Config.m_RiVoiceCompReleaseMs = 250;
+		g_Config.m_RiVoiceCompMakeup = 200;
+		g_Config.m_RiVoiceLimiter = 40;
+	}
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	static int s_ShowVoiceFilterAdvanced = 0;
+	DoButton_CheckBoxAutoVMarginAndSet(&s_ShowVoiceFilterAdvanced, RCLocalize("Show advanced filter settings"), &s_ShowVoiceFilterAdvanced, &Column, LineSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	if(s_ShowVoiceFilterAdvanced)
+	{
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompThreshold, &g_Config.m_RiVoiceCompThreshold, &Button, RCLocalize("Comp threshold (%)"), 1, 100);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompRatio, &g_Config.m_RiVoiceCompRatio, &Button, RCLocalize("Comp ratio (x0.1)"), 10, 80);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompAttackMs, &g_Config.m_RiVoiceCompAttackMs, &Button, RCLocalize("Comp attack (ms)"), 1, 100);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompReleaseMs, &g_Config.m_RiVoiceCompReleaseMs, &Button, RCLocalize("Comp release (ms)"), 10, 500);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceCompMakeup, &g_Config.m_RiVoiceCompMakeup, &Button, RCLocalize("Comp makeup (%)"), 0, 300);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+		Column.HSplitTop(LineSize, &Button, &Column);
+		Ui()->DoScrollbarOption(&g_Config.m_RiVoiceLimiter, &g_Config.m_RiVoiceLimiter, &Button, RCLocalize("Limiter (%)"), 10, 100);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+	}
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceShowIndicator, RCLocalize("Show voice indicator"), &g_Config.m_RiVoiceShowIndicator, &Column, LineSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	if(g_Config.m_RiVoiceShowIndicator)
+	{
+		CUIRect Rightoffset;
+		Column.VSplitLeft(25.0f, &Label, &Rightoffset);
+		Column.HSplitTop(LineSize, nullptr, &Column);
+		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceIndicatorAboveSelf, RCLocalize("Show indicator above you"), &g_Config.m_RiVoiceIndicatorAboveSelf, &Rightoffset, LineSize);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+	}
+	else
+	{
+		Column.HSplitTop(LineSize, nullptr, &Column);
+		Column.HSplitTop(MarginSmall, nullptr, &Column);
+	}
+	Column.HSplitTop(LineSize, &Button, &Column);
+	Ui()->DoScrollbarOption(&g_Config.m_RiVoiceRadius, &g_Config.m_RiVoiceRadius, &Button, RCLocalize("Voice radius (tiles)"), 1, 200);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	Ui()->DoScrollbarOption(&g_Config.m_RiVoiceVolume, &g_Config.m_RiVoiceVolume, &Button, RCLocalize("Voice volume"), 0, 200);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+
+	static char s_aVoiceNameVolumeName[32];
+	static int s_VoiceNameVolumePercent = 100;
+	static CLineInput s_VoiceNameVolumeName;
+	static CButtonContainer s_VoiceNameVolumeSetButton, s_VoiceNameVolumeRemoveButton;
+	Column.HSplitTop(LineSize, &Button, &Column);
+	Button.VSplitLeft(120.0f, &Label, &Button);
+	Ui()->DoLabel(&Label, RCLocalize("Name volume"), FontSize, TEXTALIGN_ML);
+	s_VoiceNameVolumeName.SetBuffer(s_aVoiceNameVolumeName, sizeof(s_aVoiceNameVolumeName));
+	s_VoiceNameVolumeName.SetEmptyText(RCLocalize("Nickname"));
+	Ui()->DoEditBox(&s_VoiceNameVolumeName, &Button, EditBoxFontSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	Ui()->DoScrollbarOption(&s_VoiceNameVolumePercent, &s_VoiceNameVolumePercent, &Button, RCLocalize("Name volume (%)"), 0, 200);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	CUIRect ButtonLeft, ButtonRight;
+	Button.VSplitMid(&ButtonLeft, &ButtonRight, MarginSmall);
+	if(DoButton_Menu(&s_VoiceNameVolumeSetButton, RCLocalize("Set volume"), 0, &ButtonLeft))
+	{
+		VoiceNameVolumesSet(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), s_aVoiceNameVolumeName, s_VoiceNameVolumePercent);
+	}
+	if(DoButton_Menu(&s_VoiceNameVolumeRemoveButton, RCLocalize("Remove volume"), 0, &ButtonRight))
+	{
+		VoiceNameVolumesRemove(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), s_aVoiceNameVolumeName);
+	}
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	Ui()->DoLabel(&Label, RCLocalize("Example: Name=80,Other=120"), FontSize * 0.9f, TEXTALIGN_ML);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	Ui()->DoLabel(&Label, g_Config.m_RiVoiceNameVolumes[0] ? g_Config.m_RiVoiceNameVolumes : RCLocalize("Name volume list empty"), FontSize * 0.9f, TEXTALIGN_ML);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+
+	static CLineInput s_VoiceInput;
+	static CLineInput s_VoiceOutput;
+	s_VoiceInput.SetBuffer(g_Config.m_RiVoiceInputDevice, sizeof(g_Config.m_RiVoiceInputDevice));
+	s_VoiceOutput.SetBuffer(g_Config.m_RiVoiceOutputDevice, sizeof(g_Config.m_RiVoiceOutputDevice));
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoEditBoxWithLabel(&s_VoiceInput, &Label, RCLocalize("Input device"), "", g_Config.m_RiVoiceInputDevice, sizeof(g_Config.m_RiVoiceInputDevice));
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoEditBoxWithLabel(&s_VoiceOutput, &Label, RCLocalize("Output device"), "", g_Config.m_RiVoiceOutputDevice, sizeof(g_Config.m_RiVoiceOutputDevice));
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	Ui()->DoLabel(&Label, RCLocalize("Use ri_voice_list_devices in console"), FontSize, TEXTALIGN_ML);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	static CButtonContainer s_ReaderButtonVoicePtt, s_ClearButtonVoicePtt;
+	Column.HSplitTop(LineSize, &Label, &Column);
+	DoLine_KeyReader(Label, s_ReaderButtonVoicePtt, s_ClearButtonVoicePtt, RCLocalize("Voice PTT"), "+ri_voice_ptt");
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	static std::vector<CButtonContainer> s_vVoiceWhiteListButtonContainers = {{}, {}, {}};
+	DoLine_RadioMenu(Column, RCLocalize("Block people with:", "VoiceChat"),
+		s_vVoiceWhiteListButtonContainers,
+		{RCLocalize("None", "VoiceChat"), RCLocalize("Whitelist", "VoiceChat"), RCLocalize("Blacklist", "VoiceChat")},
+		{0, 1, 2},
+		g_Config.m_RiVoiceListMode);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	for(CBindChat::CBindRclient &BindchatDefault : s_aDefaultBindChatRclientVoice)
+		DoBindchatDefault(Column, BindchatDefault);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	static CButtonContainer s_VoiceChatButton;
+	if(DoButtonLineSize_Menu(&s_VoiceChatButton, RCLocalize("Reset Voice Chatbinds"), 0, &Button, LineSize, false, 0, IGraphics::CORNER_ALL, 5.0f, 0.0f, ColorRGBA(0.5f, 0.0f, 0.0f, 0.25f)))
+	{
+		for(const CBindChat::CBindRclient &BindDefault : s_aDefaultBindChatRclientVoice)
+		{
+			GameClient()->m_BindChat.RemoveBindCommand(BindDefault.m_Bind.m_aCommand);
+			GameClient()->m_BindChat.AddBind(BindDefault.m_Bind);
+		}
+	}
 	EndSection(Column);
 
 	RightView = Column;
