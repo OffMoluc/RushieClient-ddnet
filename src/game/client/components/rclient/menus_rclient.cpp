@@ -889,6 +889,12 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 		Column.HSplitTop(LineSize, nullptr, &Column);
 		Column.HSplitTop(MarginSmall, nullptr, &Column);
 	}
+	static std::vector<CButtonContainer> s_vHammerHitEffectsButtonContainers = {{}, {}, {}};
+	DoLine_RadioMenu(Column, RCLocalize("Show Hammer Hit:", "HammerHit"),
+		s_vHammerHitEffectsButtonContainers,
+		{RCLocalize("No effect", "HammerHit"), RCLocalize("Default", "HammerHit"), RCLocalize("No Sound", "HammerHit")},
+		{0, 1, 2},
+		g_Config.m_RiShowHammerHit);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	EndSection(Column);
 

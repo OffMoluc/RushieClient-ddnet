@@ -392,6 +392,9 @@ void CEffects::Explosion(vec2 Pos, float Alpha)
 void CEffects::HammerHit(vec2 Pos, float Alpha, float Volume)
 {
 	// add the explosion
+	Alpha = g_Config.m_RiShowHammerHit == 1 ? Alpha : 0;
+	if(g_Config.m_RiShowHammerHit == 2)
+		return;
 	CParticle p;
 	p.SetDefault();
 	p.m_Spr = SPRITE_PART_HIT01;
