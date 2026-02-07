@@ -20,9 +20,23 @@ class CRClientVoice
 {
 	struct SVoicePeer
 	{
+		static constexpr int MAX_FRAMES = 8;
+		struct SVoiceFrame
+		{
+			int16_t m_aPcm[960] = {};
+			int m_Samples = 0;
+			float m_LeftGain = 1.0f;
+			float m_RightGain = 1.0f;
+		};
+
 		OpusDecoder *m_pDecoder = nullptr;
 		uint16_t m_LastSeq = 0;
 		bool m_HasSeq = false;
+		SVoiceFrame m_aFrames[MAX_FRAMES] = {};
+		int m_FrameHead = 0;
+		int m_FrameTail = 0;
+		int m_FrameCount = 0;
+		int m_FrameReadPos = 0;
 	};
 
 	CGameClient *m_pGameClient = nullptr;
@@ -45,10 +59,7 @@ class CRClientVoice
 	float m_HpfPrevIn = 0.0f;
 	float m_HpfPrevOut = 0.0f;
 	float m_CompEnv = 0.0f;
-
-	static constexpr int VOICE_MIX_BUFFER_CHANNELS = 8;
-	static constexpr int VOICE_MIX_BUFFER_SAMPLES = 960 * VOICE_MIX_BUFFER_CHANNELS;
-	int16_t m_aMixingBuffer[VOICE_MIX_BUFFER_SAMPLES] = {};
+	int m_OutputChannels = 0;
 
 	OpusEncoder *m_pEncoder = nullptr;
 	std::array<SVoicePeer, MAX_CLIENTS> m_aPeers = {};
@@ -66,7 +77,10 @@ class CRClientVoice
 	void UpdateContext();
 	void ProcessCapture();
 	void ProcessIncoming();
-	void QueueOutput(const int16_t *pPcm, int Samples, int OutputChannels, float LeftGain, float RightGain, float Volume);
+	void PushPeerFrame(int PeerId, const int16_t *pPcm, int Samples, float LeftGain, float RightGain);
+	void MixAudio(int16_t *pOut, int Samples, int OutputChannels);
+	void ClearPeerFrames();
+	static void SDLAudioCallback(void *pUserData, Uint8 *pStream, int Len);
 	const char *FindDeviceName(bool Capture, const char *pDesired) const;
 
 public:

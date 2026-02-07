@@ -209,6 +209,23 @@ static void ApplyHpfCompressor(int16_t *pSamples, int Count, float &PrevIn, floa
 	}
 }
 
+void CRClientVoice::SDLAudioCallback(void *pUserData, Uint8 *pStream, int Len)
+{
+	auto *pThis = static_cast<CRClientVoice *>(pUserData);
+	if(!pThis || Len <= 0)
+		return;
+
+	const int OutputChannels = pThis->m_OutputChannels > 0 ? pThis->m_OutputChannels : 1;
+	const int Samples = Len / (int)(sizeof(int16_t) * OutputChannels);
+	if(Samples <= 0)
+	{
+		mem_zero(pStream, Len);
+		return;
+	}
+
+	pThis->MixAudio(reinterpret_cast<int16_t *>(pStream), Samples, OutputChannels);
+}
+
 static bool ParseHostPort(const char *pAddrStr, char *pHost, size_t HostSize, int &Port)
 {
 	const char *pColon = str_rchr(pAddrStr, ':');
@@ -275,7 +292,8 @@ bool CRClientVoice::EnsureAudio()
 	WantOutput.format = AUDIO_S16;
 	WantOutput.channels = DesiredOutputChannels;
 	WantOutput.samples = VOICE_FRAME_SAMPLES;
-	WantOutput.callback = nullptr;
+	WantOutput.callback = SDLAudioCallback;
+	WantOutput.userdata = this;
 
 	const bool HadCapture = m_CaptureDevice != 0;
 	const bool HadOutput = m_OutputDevice != 0;
@@ -355,6 +373,8 @@ bool CRClientVoice::EnsureAudio()
 			return false;
 		}
 		SDL_PauseAudioDevice(m_OutputDevice, 0);
+		m_OutputChannels = m_OutputSpec.channels > 0 ? m_OutputSpec.channels : (WantStereo ? 2 : 1);
+		ClearPeerFrames();
 	}
 
 	if(!m_pEncoder)
@@ -385,54 +405,103 @@ bool CRClientVoice::EnsureAudio()
 	return true;
 }
 
-void CRClientVoice::QueueOutput(const int16_t *pPcm, int Samples, int OutputChannels, float LeftGain, float RightGain, float Volume)
+void CRClientVoice::PushPeerFrame(int PeerId, const int16_t *pPcm, int Samples, float LeftGain, float RightGain)
+{
+	if(PeerId < 0 || PeerId >= MAX_CLIENTS)
+		return;
+	if(Samples <= 0)
+		return;
+
+	SVoicePeer &Peer = m_aPeers[PeerId];
+	if(Peer.m_FrameCount >= SVoicePeer::MAX_FRAMES)
+	{
+		Peer.m_FrameHead = (Peer.m_FrameHead + 1) % SVoicePeer::MAX_FRAMES;
+		Peer.m_FrameCount--;
+		Peer.m_FrameReadPos = 0;
+	}
+
+	SVoicePeer::SVoiceFrame &Frame = Peer.m_aFrames[Peer.m_FrameTail];
+	const int CopySamples = std::min(Samples, VOICE_FRAME_SAMPLES);
+	mem_copy(Frame.m_aPcm, pPcm, CopySamples * sizeof(int16_t));
+	Frame.m_Samples = CopySamples;
+	Frame.m_LeftGain = LeftGain;
+	Frame.m_RightGain = RightGain;
+	Peer.m_FrameTail = (Peer.m_FrameTail + 1) % SVoicePeer::MAX_FRAMES;
+	Peer.m_FrameCount++;
+}
+
+void CRClientVoice::MixAudio(int16_t *pOut, int Samples, int OutputChannels)
 {
 	if(Samples <= 0 || OutputChannels <= 0)
 		return;
 
-	const int MaxQueued = VOICE_SAMPLE_RATE * sizeof(int16_t) * OutputChannels * 2;
-	if((int)SDL_GetQueuedAudioSize(m_OutputDevice) > MaxQueued)
-		SDL_ClearQueuedAudio(m_OutputDevice);
+	static thread_local std::vector<int32_t> s_Mix;
+	s_Mix.assign(Samples * OutputChannels, 0);
 
-	if(OutputChannels >= 2)
+	for(auto &Peer : m_aPeers)
 	{
-		if(OutputChannels <= VOICE_MIX_BUFFER_CHANNELS)
-		{
-			for(int i = 0; i < Samples; i++)
-			{
-				const int LeftSample = (int)(pPcm[i] * LeftGain);
-				const int RightSample = (int)(pPcm[i] * RightGain);
-				m_aMixingBuffer[i * OutputChannels] = (int16_t)std::clamp(LeftSample, -32768, 32767);
-				m_aMixingBuffer[i * OutputChannels + 1] = (int16_t)std::clamp(RightSample, -32768, 32767);
-				for(int ch = 2; ch < OutputChannels; ch++)
-					m_aMixingBuffer[i * OutputChannels + ch] = m_aMixingBuffer[i * OutputChannels];
-			}
-			SDL_QueueAudio(m_OutputDevice, m_aMixingBuffer, Samples * OutputChannels * sizeof(int16_t));
-		}
-		else
-		{
-			static thread_local std::vector<int16_t> s_Out;
-			s_Out.resize(Samples * OutputChannels);
-			for(int i = 0; i < Samples; i++)
-			{
-				const int LeftSample = (int)(pPcm[i] * LeftGain);
-				const int RightSample = (int)(pPcm[i] * RightGain);
-				s_Out[i * OutputChannels] = (int16_t)std::clamp(LeftSample, -32768, 32767);
-				s_Out[i * OutputChannels + 1] = (int16_t)std::clamp(RightSample, -32768, 32767);
-				for(int ch = 2; ch < OutputChannels; ch++)
-					s_Out[i * OutputChannels + ch] = s_Out[i * OutputChannels];
-			}
-			SDL_QueueAudio(m_OutputDevice, s_Out.data(), (int)s_Out.size() * sizeof(int16_t));
-		}
-	}
-	else
-	{
+		int FrameIdx = Peer.m_FrameHead;
+		int FrameCount = Peer.m_FrameCount;
+		int ReadPos = Peer.m_FrameReadPos;
+		if(FrameCount <= 0)
+			continue;
+
 		for(int i = 0; i < Samples; i++)
 		{
-			const int Sample = (int)(pPcm[i] * Volume);
-			m_aMixingBuffer[i] = (int16_t)std::clamp(Sample, -32768, 32767);
+			if(FrameCount <= 0)
+				break;
+
+			SVoicePeer::SVoiceFrame &Frame = Peer.m_aFrames[FrameIdx];
+			const int16_t Pcm = Frame.m_aPcm[ReadPos];
+			const float LeftGain = Frame.m_LeftGain;
+			const float RightGain = Frame.m_RightGain;
+
+			const int Base = i * OutputChannels;
+			if(OutputChannels == 1)
+			{
+				const float MonoGain = 0.5f * (LeftGain + RightGain);
+				s_Mix[Base] += (int32_t)(Pcm * MonoGain);
+			}
+			else
+			{
+				s_Mix[Base] += (int32_t)(Pcm * LeftGain);
+				s_Mix[Base + 1] += (int32_t)(Pcm * RightGain);
+				if(OutputChannels > 2)
+				{
+					const int32_t Center = (int32_t)(Pcm * 0.5f * (LeftGain + RightGain));
+					for(int ch = 2; ch < OutputChannels; ch++)
+						s_Mix[Base + ch] += Center;
+				}
+			}
+
+			ReadPos++;
+			if(ReadPos >= Frame.m_Samples)
+			{
+				ReadPos = 0;
+				FrameIdx = (FrameIdx + 1) % SVoicePeer::MAX_FRAMES;
+				FrameCount--;
+			}
 		}
-		SDL_QueueAudio(m_OutputDevice, m_aMixingBuffer, Samples * sizeof(int16_t));
+
+		Peer.m_FrameHead = FrameIdx;
+		Peer.m_FrameCount = FrameCount;
+		Peer.m_FrameReadPos = ReadPos;
+	}
+
+	for(int i = 0; i < Samples * OutputChannels; i++)
+	{
+		pOut[i] = (int16_t)std::clamp(s_Mix[i], -32768, 32767);
+	}
+}
+
+void CRClientVoice::ClearPeerFrames()
+{
+	for(auto &Peer : m_aPeers)
+	{
+		Peer.m_FrameHead = 0;
+		Peer.m_FrameTail = 0;
+		Peer.m_FrameCount = 0;
+		Peer.m_FrameReadPos = 0;
 	}
 }
 
@@ -505,6 +574,8 @@ void CRClientVoice::Shutdown()
 		net_udp_close(m_Socket);
 		m_Socket = nullptr;
 	}
+	m_OutputChannels = 0;
+	ClearPeerFrames();
 	m_ServerAddrValid = false;
 	m_aServerAddrStr[0] = '\0';
 	m_HpfPrevIn = 0.0f;
@@ -745,10 +816,9 @@ void CRClientVoice::ProcessIncoming()
 		}
 
 		const bool StereoEnabled = g_Config.m_RiVoiceStereo != 0;
-		const int OutputChannels = m_OutputSpec.channels > 0 ? m_OutputSpec.channels : (StereoEnabled ? 2 : 1);
-		const float Pan = StereoEnabled ? std::clamp((SenderPos.x - LocalPos.x) / Radius, -1.0f, 1.0f) : 0.0f;
-		const float LeftGain = Volume * (Pan <= 0.0f ? 1.0f : (1.0f - Pan));
-		const float RightGain = Volume * (Pan >= 0.0f ? 1.0f : (1.0f + Pan));
+	const float Pan = StereoEnabled ? std::clamp((SenderPos.x - LocalPos.x) / Radius, -1.0f, 1.0f) : 0.0f;
+	const float LeftGain = Volume * (Pan <= 0.0f ? 1.0f : (1.0f - Pan));
+	const float RightGain = Volume * (Pan >= 0.0f ? 1.0f : (1.0f + Pan));
 
 		SVoicePeer &Peer = m_aPeers[SenderId];
 		OpusDecoder *pDecoder = Peer.m_pDecoder;
@@ -774,7 +844,11 @@ void CRClientVoice::ProcessIncoming()
 			{
 				int PlcSamples = opus_decode(pDecoder, nullptr, 0, aPcm, VOICE_FRAME_SAMPLES, 1);
 				if(PlcSamples > 0)
-					QueueOutput(aPcm, PlcSamples, OutputChannels, LeftGain, RightGain, Volume);
+				{
+					SDL_LockAudioDevice(m_OutputDevice);
+					PushPeerFrame(SenderId, aPcm, PlcSamples, LeftGain, RightGain);
+					SDL_UnlockAudioDevice(m_OutputDevice);
+				}
 				Expected = (uint16_t)(Expected + 1);
 				PlcCount++;
 			}
@@ -786,7 +860,9 @@ void CRClientVoice::ProcessIncoming()
 		Peer.m_LastSeq = Sequence;
 		Peer.m_HasSeq = true;
 
-		QueueOutput(aPcm, Samples, OutputChannels, LeftGain, RightGain, Volume);
+		SDL_LockAudioDevice(m_OutputDevice);
+		PushPeerFrame(SenderId, aPcm, Samples, LeftGain, RightGain);
+		SDL_UnlockAudioDevice(m_OutputDevice);
 
 		if(g_Config.m_RiVoiceDebug)
 		{
