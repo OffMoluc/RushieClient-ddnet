@@ -729,6 +729,9 @@ void CRClient::FetchFindHours(const char *pNickname, const char *pWriteinchat)
 	else
 		str_copy(m_aFindHoursPlayer, pNickname, sizeof(m_aFindHoursPlayer));
 
+	if(str_comp_nocase(m_aFindHoursResultPlayer, pNickname) != 0)
+		m_HasFindHoursResult = false;
+
 	if((str_comp("W", pWriteinchat) == 0) || ((str_comp("w", pWriteinchat) == 0)))
 		m_WriteFindHoursInChat = true;
 	else
@@ -761,6 +764,10 @@ void CRClient::FinishFindHours()
 		{
 			int Hours = Seconds.u.integer / 3600;
 			int Pointsfinal = Points.u.integer;
+			str_copy(m_aFindHoursResultPlayer, m_aFindHoursPlayer, sizeof(m_aFindHoursResultPlayer));
+			m_FindHoursResultHours = Hours;
+			m_FindHoursResultPoints = Pointsfinal;
+			m_HasFindHoursResult = true;
 			char aBuf[128];
 			str_format(aBuf, sizeof(aBuf), "Player %s has %d hours and %d points", m_aFindHoursPlayer, Hours, Pointsfinal);
 			GameClient()->Echo(aBuf);
@@ -780,6 +787,26 @@ void CRClient::FinishFindHours()
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "FindHours", "Invalid 'general_activity' in JSON");
 	}
 	json_value_free(pJson);
+}
+
+bool CRClient::GetFindHoursResult(const char *pNickname, int *pHours, int *pPoints) const
+{
+	if(!pNickname || !m_HasFindHoursResult || str_comp_nocase(m_aFindHoursResultPlayer, pNickname) != 0)
+		return false;
+
+	if(pHours)
+		*pHours = m_FindHoursResultHours;
+	if(pPoints)
+		*pPoints = m_FindHoursResultPoints;
+	return true;
+}
+
+bool CRClient::IsFindHoursInProgress(const char *pNickname) const
+{
+	if(!pNickname || !m_pFindHoursTask || m_pFindHoursTask->Done())
+		return false;
+
+	return str_comp_nocase(m_aFindHoursPlayer, pNickname) == 0;
 }
 
 void CRClient::ResetFindHours()

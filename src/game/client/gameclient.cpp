@@ -173,6 +173,7 @@ void CGameClient::OnConsoleInit()
 					      &m_DebugHud,
 					      &m_TouchControls,
 					      &m_AdminPanelRi,
+					      &m_RiPlayerMenu,
 					      &m_EdgeHelper,
 					      &m_Scoreboard,
 					      &m_Statboard,
@@ -190,6 +191,7 @@ void CGameClient::OnConsoleInit()
 						  &m_GameConsole,
 						  &m_Chat, // chat has higher prio, due to that you can quit it by pressing esc
 						  &m_AdminPanelRi,
+						  &m_RiPlayerMenu,
 						  &m_Scoreboard,
 						  &m_Motd, // for pressing esc to remove it
 						  &m_Spectator,

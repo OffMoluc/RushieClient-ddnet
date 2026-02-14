@@ -125,6 +125,10 @@ class CRClient : public CComponent
 	std::shared_ptr<CHttpRequest> m_pFindHoursTask;
 	char m_aFindHoursPlayer[32];
 	bool m_WriteFindHoursInChat;
+	char m_aFindHoursResultPlayer[32]{};
+	int m_FindHoursResultHours = 0;
+	int m_FindHoursResultPoints = 0;
+	bool m_HasFindHoursResult = false;
 	void FinishFindHours();
 	void ResetFindHours();
 
@@ -166,6 +170,8 @@ public:
 
 	//FindHours
 	void FetchFindHours(const char *pNickname, const char *pWriteinchat);
+	bool GetFindHoursResult(const char *pNickname, int *pHours, int *pPoints) const;
+	bool IsFindHoursInProgress(const char *pNickname) const;
 
 	// Regex
 	static std::vector<std::string> SplitRegex(const char *aboba);

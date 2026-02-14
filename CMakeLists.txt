@@ -2591,6 +2591,8 @@ if(CLIENT)
     components/rclient/edgehelper.cpp
     components/rclient/edgehelper.h
     components/rclient/menus_rclient.cpp
+    components/rclient/playermenu.cpp
+    components/rclient/playermenu.h
     components/rclient/rclient.cpp
     components/rclient/rclient.h
     components/rclient/rclient_indicator.cpp

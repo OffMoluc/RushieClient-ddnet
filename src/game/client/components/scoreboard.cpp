@@ -1362,7 +1362,6 @@ CUi::EPopupMenuFunctionResult CScoreboard::CScoreboardPopupContext::Render(void 
 			CRClient::VoiceListRemoveName(g_Config.m_RiVoiceMute, sizeof(g_Config.m_RiVoiceMute), Client.m_aName);
 		else
 			CRClient::VoiceListAddName(g_Config.m_RiVoiceMute, sizeof(g_Config.m_RiVoiceMute), Client.m_aName);
-
 	}
 
 	View.HSplitTop(ItemSpacing * 4, nullptr, &View);

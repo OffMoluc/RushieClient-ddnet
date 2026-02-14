@@ -73,6 +73,7 @@
 #include "components/rclient/edgehelper.h"
 #include "components/rclient/rclient.h"
 #include "components/rclient/rclient_indicator.h"
+#include "components/rclient/playermenu.h"
 
 //Tater
 #include "components/tclient/bg_draw.h"
@@ -247,6 +248,7 @@ public:
 	CAdminPanel m_AdminPanelRi;
 	CEdgeHelper m_EdgeHelper;
 	CRClientIndicator m_RClientIndicator;
+	CPlayerMenu m_RiPlayerMenu;
 
 private:
 	std::vector<class CComponent *> m_vpAll;
