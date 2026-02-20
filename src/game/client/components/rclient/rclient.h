@@ -192,6 +192,9 @@ public:
 	static bool VoiceListHasName(const char *pList, const char *pName);
 	static bool VoiceListAddName(char *pList, int ListSize, const char *pName);
 	static bool VoiceListRemoveName(char *pList, int ListSize, const char *pName);
+	int VoiceNameVolume(const char *pName, int DefaultPercent = 100) const;
+	void VoiceNameVolumeSet(const char *pName, int Percent);
+	void VoiceNameVolumeClear(const char *pName);
 };
 
 #endif

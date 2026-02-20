@@ -2122,6 +2122,74 @@ bool CRClient::IsVoiceActive(int ClientId) const
 	return m_Voice.IsVoiceActive(ClientId);
 }
 
+int CRClient::VoiceNameVolume(const char *pName, int DefaultPercent) const
+{
+	char aNeedle[MAX_NAME_LENGTH];
+	if(!VoiceListTrimName(pName, aNeedle, sizeof(aNeedle)))
+		return std::clamp(DefaultPercent, 0, 200);
+
+	const char *p = g_Config.m_RiVoiceNameVolumes;
+	while(*p)
+	{
+		while(*p == ',' || std::isspace((unsigned char)*p))
+			p++;
+		if(*p == '\0')
+			break;
+
+		const char *pStart = p;
+		while(*p && *p != ',')
+			p++;
+		const char *pEnd = p;
+		while(pEnd > pStart && std::isspace((unsigned char)pEnd[-1]))
+			pEnd--;
+		while(pStart < pEnd && std::isspace((unsigned char)*pStart))
+			pStart++;
+
+		const int Len = (int)(pEnd - pStart);
+		if(Len <= 0)
+			continue;
+
+		char aToken[128];
+		str_truncate(aToken, sizeof(aToken), pStart, Len);
+
+		const char *pEq = str_find(aToken, "=");
+		if(!pEq)
+			continue;
+
+		const int EqIndex = (int)(pEq - aToken);
+		aToken[EqIndex] = '\0';
+		char aName[MAX_NAME_LENGTH];
+		if(!VoiceListTrimName(aToken, aName, sizeof(aName)))
+			continue;
+		if(str_comp_nocase(aName, aNeedle) != 0)
+			continue;
+
+		int Percent = str_toint(aToken + EqIndex + 1);
+		return std::clamp(Percent, 0, 200);
+	}
+
+	return std::clamp(DefaultPercent, 0, 200);
+}
+
+void CRClient::VoiceNameVolumeSet(const char *pName, int Percent)
+{
+	char aName[MAX_NAME_LENGTH];
+	if(!VoiceListTrimName(pName, aName, sizeof(aName)))
+		return;
+
+	Percent = std::clamp(Percent, 0, 200);
+	RemoveVoiceNameVolume(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), aName);
+
+	char aItem[128];
+	str_format(aItem, sizeof(aItem), "%s=%d", aName, Percent);
+	AppendListItem(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), aItem);
+}
+
+void CRClient::VoiceNameVolumeClear(const char *pName)
+{
+	RemoveVoiceNameVolume(g_Config.m_RiVoiceNameVolumes, sizeof(g_Config.m_RiVoiceNameVolumes), pName);
+}
+
 const CNetObj_PlayerInfo *CRClient::GetSortingScoreSpec(int SwitchNum, int ClientId)
 {
 	switch(SwitchNum)
