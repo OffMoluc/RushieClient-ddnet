@@ -29,6 +29,14 @@ void CRClient::OnInit()
 	m_Voice.Init(GameClient(), Client(), Console());
 }
 
+void CRClient::OnShutdown()
+{
+	if(m_45degreesEnabled || m_SmallsensEnabled)
+		g_Config.m_InpMousesens = m_45degreesDistanceOld == 0 ? m_45degreesDistanceOld : m_SmallsensOld;
+	if(m_45degreesEnabled)
+		g_Config.m_ClMouseMaxDistance = m_45degreesDistanceOld;
+}
+
 void CRClient::OnConsoleInit()
 {
 	Console()->Register("ri_find_player_from_ddstats", "s[type]", CFGFLAG_CLIENT, ConFindPlayerFromDdstats, this, "Fetch player from DDstats");
@@ -829,8 +837,8 @@ void CRClient::ConToggle45Degrees(IConsole::IResult *pResult, void *pUserData)
 		{
 			pSelf->GameClient()->Echo("[[green]] 45° on");
 			pSelf->m_45degreesEnabled = 1;
-			g_Config.m_RiPrevInpMousesens45degrees = (pSelf->m_SmallsensEnabled == 1 ? g_Config.m_RiPrevInpMousesensSmallsens : g_Config.m_InpMousesens);
-			g_Config.m_RiPrevMouseMaxDistance45degrees = g_Config.m_ClMouseMaxDistance;
+			pSelf->m_45degreesSensOld = (pSelf->m_SmallsensEnabled == 1 ? pSelf->m_SmallsensOld : g_Config.m_InpMousesens);
+			pSelf->m_45degreesDistanceOld = g_Config.m_ClMouseMaxDistance;
 			g_Config.m_ClMouseMaxDistance = 2;
 			g_Config.m_InpMousesens = 4;
 		}
@@ -838,8 +846,8 @@ void CRClient::ConToggle45Degrees(IConsole::IResult *pResult, void *pUserData)
 		{
 			pSelf->m_45degreesEnabled = 0;
 			pSelf->GameClient()->Echo("[[red]] 45° off");
-			g_Config.m_ClMouseMaxDistance = g_Config.m_RiPrevMouseMaxDistance45degrees;
-			g_Config.m_InpMousesens = g_Config.m_RiPrevInpMousesens45degrees;
+			g_Config.m_ClMouseMaxDistance = pSelf->m_45degreesDistanceOld;
+			g_Config.m_InpMousesens = pSelf->m_45degreesSensOld;
 		}
 		pSelf->m_45degreestogglelastinput = pSelf->m_45degreestoggle;
 	}
@@ -852,15 +860,15 @@ void CRClient::ConToggle45Degrees(IConsole::IResult *pResult, void *pUserData)
 			{
 				pSelf->m_45degreesEnabled = 0;
 				pSelf->GameClient()->Echo("[[red]] 45° off");
-				g_Config.m_ClMouseMaxDistance = g_Config.m_RiPrevMouseMaxDistance45degrees;
-				g_Config.m_InpMousesens = g_Config.m_RiPrevInpMousesens45degrees;
+				g_Config.m_ClMouseMaxDistance = pSelf->m_45degreesDistanceOld;
+				g_Config.m_InpMousesens = pSelf->m_45degreesSensOld;
 			}
 			else
 			{
 				pSelf->m_45degreesEnabled = 1;
 				pSelf->GameClient()->Echo("[[green]] 45° on");
-				g_Config.m_RiPrevInpMousesens45degrees = (pSelf->m_SmallsensEnabled == 1 ? g_Config.m_RiPrevInpMousesensSmallsens : g_Config.m_InpMousesens);
-				g_Config.m_RiPrevMouseMaxDistance45degrees = g_Config.m_ClMouseMaxDistance;
+				pSelf->m_45degreesSensOld = (pSelf->m_SmallsensEnabled == 1 ? pSelf->m_SmallsensOld : g_Config.m_InpMousesens);
+				pSelf->m_45degreesDistanceOld = g_Config.m_ClMouseMaxDistance;
 				g_Config.m_ClMouseMaxDistance = 2;
 				g_Config.m_InpMousesens = 4;
 			}
@@ -879,14 +887,14 @@ void CRClient::ConToggleSmallSens(IConsole::IResult *pResult, void *pUserData)
 		{
 			pSelf->m_SmallsensEnabled = 1;
 			pSelf->GameClient()->Echo("[[green]] small sens on");
-			g_Config.m_RiPrevInpMousesensSmallsens = (pSelf->m_45degreesEnabled == 1 ? g_Config.m_RiPrevInpMousesens45degrees : g_Config.m_InpMousesens);
+			pSelf->m_SmallsensOld = (pSelf->m_45degreesEnabled == 1 ? pSelf->m_45degreesSensOld : g_Config.m_InpMousesens);
 			g_Config.m_InpMousesens = 1;
 		}
 		else if(!pSelf->m_Smallsenstoggle)
 		{
 			pSelf->m_SmallsensEnabled = 0;
 			pSelf->GameClient()->Echo("[[red]] small sens off");
-			g_Config.m_InpMousesens = g_Config.m_RiPrevInpMousesensSmallsens;
+			g_Config.m_InpMousesens = pSelf->m_SmallsensOld;
 		}
 		pSelf->m_Smallsenstogglelastinput = pSelf->m_Smallsenstoggle;
 	}
@@ -899,13 +907,13 @@ void CRClient::ConToggleSmallSens(IConsole::IResult *pResult, void *pUserData)
 			{
 				pSelf->m_SmallsensEnabled = 0;
 				pSelf->GameClient()->Echo("[[red]] small sens off");
-				g_Config.m_InpMousesens = g_Config.m_RiPrevInpMousesensSmallsens;
+				g_Config.m_InpMousesens = pSelf->m_SmallsensOld;
 			}
 			else
 			{
 				pSelf->m_SmallsensEnabled = 1;
 				pSelf->GameClient()->Echo("[[green]] small sens on");
-				g_Config.m_RiPrevInpMousesensSmallsens = (pSelf->m_45degreesEnabled == 1 ? g_Config.m_RiPrevInpMousesens45degrees : g_Config.m_InpMousesens);
+				pSelf->m_SmallsensOld = (pSelf->m_45degreesEnabled == 1 ? pSelf->m_45degreesSensOld : g_Config.m_InpMousesens);
 				g_Config.m_InpMousesens = 1;
 			}
 		}

@@ -73,10 +73,13 @@ class CRClient : public CComponent
 	int m_45degreestoggle = 0;
 	int m_45degreestogglelastinput = 0;
 	int m_45degreesEnabled = 0;
+	int m_45degreesSensOld = 0;
+	int m_45degreesDistanceOld = 0;
 	// Small sens
 	int m_Smallsenstoggle = 0;
 	int m_Smallsenstogglelastinput = 0;
 	int m_SmallsensEnabled = 0;
+	int m_SmallsensOld = 0;
 	//Deepfly
 	char m_Oldmouse1Bind[128];
 
@@ -144,6 +147,7 @@ public:
 	void OnInit() override;
 	void OnConsoleInit() override;
 	void OnRender() override;
+	void OnShutdown() override;
 
 	static constexpr const char *RCLIENT_URL = "https://rushie-client.ru";
 	static constexpr const char *RCLIENT_VERSION_URL = "https://server.rushie-client.ru/version";
