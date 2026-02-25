@@ -1,9 +1,8 @@
-#include <base/math.h>
-#include <base/system.h>
-#include <base/str.h>
+#include "engine/font_icons.h"
 
-#include <algorithm>
-#include <cctype>
+#include <base/math.h>
+#include <base/str.h>
+#include <base/system.h>
 
 #include <engine/graphics.h>
 #include <engine/shared/config.h>
@@ -11,21 +10,22 @@
 #include <engine/storage.h>
 #include <engine/textrender.h>
 
-#include <game/localization.h>
 #include <generated/protocol.h>
 
-#include <SDL_audio.h>
-
+#include <game/client/animstate.h>
 #include <game/client/components/menu_background.h>
 #include <game/client/components/menus.h>
-#include <game/client/animstate.h>
 #include <game/client/components/rclient/bindwheel.h>
 #include <game/client/components/tclient/bindchat.h>
-
 #include <game/client/gameclient.h>
 #include <game/client/ui.h>
 #include <game/client/ui_scrollregion.h>
+#include <game/localization.h>
 
+#include <SDL_audio.h>
+
+#include <algorithm>
+#include <cctype>
 #include <vector>
 enum
 {
@@ -60,8 +60,6 @@ enum
 	RCLIENT_SETTINGS_SECTION_VOICE,
 	NUM_RCLIENT_SETTINGS_SECTIONS
 };
-
-using namespace FontIcons;
 
 static float s_Time = 0.0f;
 static bool s_StartedTime = false;
@@ -587,7 +585,7 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 		Props.m_EnableWidthCheck = false;
 		TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
 		TextRender()->SetRenderFlags(ETextRenderFlags::TEXT_RENDER_FLAG_ONLY_ADVANCE_WIDTH | ETextRenderFlags::TEXT_RENDER_FLAG_NO_X_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_Y_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_OVERSIZE);
-		Ui()->DoLabel(&ExpandButton, s_aSectionExpanded[SectionId] ? FONT_ICON_CHEVRON_UP : FONT_ICON_CHEVRON_DOWN, HeadlineFontSize, TEXTALIGN_MR, Props);
+		Ui()->DoLabel(&ExpandButton, s_aSectionExpanded[SectionId] ? FontIcon::CHEVRON_UP : FontIcon::CHEVRON_DOWN, HeadlineFontSize, TEXTALIGN_MR, Props);
 		TextRender()->SetRenderFlags(0);
 		TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
 

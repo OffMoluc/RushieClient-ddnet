@@ -721,7 +721,7 @@ protected:
 		CTextCursor Cursor;
 		This.TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
 		Cursor.m_FontSize = m_FontSize;
-		This.TextRender()->CreateOrAppendTextContainer(m_TextContainerIndex, &Cursor, FontIcons::FONT_ICON_MICROPHONE);
+		This.TextRender()->CreateOrAppendTextContainer(m_TextContainerIndex, &Cursor, FontIcon::RC_MICROPHONE);
 		This.TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
 	}
 

@@ -1785,7 +1785,7 @@ void CMenus::RenderServerbrowserFriends(CUIRect View)
 		GroupIcon.Margin(2.0f, &GroupIcon);
 		TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
 		TextRender()->TextColor(Ui()->HotItem() == &s_WarListExtended ? TextRender()->DefaultTextColor() : ColorRGBA(0.6f, 0.6f, 0.6f, 1.0f));
-		Ui()->DoLabel(&GroupIcon, s_WarListExtended ? FONT_ICON_SQUARE_MINUS : FONT_ICON_SQUARE_PLUS, GroupIcon.h * CUi::ms_FontmodHeight, TEXTALIGN_MC);
+		Ui()->DoLabel(&GroupIcon, s_WarListExtended ? FontIcon::SQUARE_MINUS : FontIcon::SQUARE_PLUS, GroupIcon.h * CUi::ms_FontmodHeight, TEXTALIGN_MC);
 		TextRender()->TextColor(TextRender()->DefaultTextColor());
 		TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
 		str_format(aBuf, sizeof(aBuf), "Warlist entries (%d)", (int)vWarBrowserEntries.size());

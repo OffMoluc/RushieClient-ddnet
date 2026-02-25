@@ -91,6 +91,17 @@ namespace FontIcon
 	inline const char *const VIDEO = "\uF03D";
 	inline const char *const XMARK = "\uF00D";
 
+	// RClient
+	inline const char *const RC_LIST_TRACK = "\xEF\x80\xBA";
+	inline const char *const RC_PEOPLE_GROUP = "\xEE\x94\xB3";
+	inline const char *const RC_PERSON_RIFLE = "\xEE\x95\x8E";
+	inline const char *const RC_GAVEL = "\xEF\x83\xA3";
+	inline const char *const RC_DOOR_OPEN = "\xEF\x94\xAB";
+	inline const char *const RC_SCULL = "\xEF\x95\x8C";
+	inline const char *const RC_ANGLE_UP = "\xEF\x84\x86";
+	inline const char *const RC_ANGLES_UP = "\xEF\x84\x82";
+	inline const char *const RC_MICROPHONE = "\xEF\x84\xB0";
+
 	// TClient
 	inline const char *const ICON_USERS = "\xEF\x83\x80";
 }

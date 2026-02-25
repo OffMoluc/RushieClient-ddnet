@@ -2025,7 +2025,7 @@ void CHud::RenderVoiceIndicator()
 
 	Graphics()->DrawRect(X, Y, BoxWidth, BoxHeight, ColorRGBA(0.0f, 0.0f, 0.0f, 0.4f), IGraphics::CORNER_ALL, 3.0f);
 	TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
-	TextRender()->Text(X + Padding, Y + (BoxHeight - FontSize) / 2.0f, FontSize, FontIcons::FONT_ICON_MICROPHONE, -1.0f);
+	TextRender()->Text(X + Padding, Y + (BoxHeight - FontSize) / 2.0f, FontSize, FontIcon::RC_MICROPHONE, -1.0f);
 	TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
 }
 

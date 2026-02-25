@@ -759,7 +759,7 @@ void CScoreboard::RenderScoreboard(CUIRect Scoreboard, int Team, int CountStart,
 					TextRender()->TextColor(ColorRGBA(1.0f, 0.0f, 0.0f, PrevColor.a));
 
 					TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
-					TextRender()->TextEx(&Cursor, FontIcons::FONT_ICON_HEART);
+					TextRender()->TextEx(&Cursor, FontIcon::HEART);
 					TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
 
 					TextRender()->TextColor(PrevColor);
@@ -1185,7 +1185,7 @@ CUi::EPopupMenuFunctionResult CScoreboard::CScoreboardPopupContext::Render(void 
 		const bool IsTracked = pScoreboard->GameClient()->m_RClient.IsTracked(Client.ClientId());
 		ColorRGBA TrackerActionColor = pUi->HotItem() == &pPopupContext->m_TrackerAction ? IsTracked ? ColorRGBA(1.0f, 0.42f, 0.42f, 0.8f * pUi->ButtonColorMul(&pPopupContext->m_TrackerAction)) : ColorRGBA(0.53f, 0.78f, 0.53f, 0.8f * pUi->ButtonColorMul(&pPopupContext->m_TrackerAction)) :
 								IsTracked ? ColorRGBA(0.53f, 0.78f, 0.53f, 0.8f) : ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f);
-		if(pUi->DoButton_FontIcon(&pPopupContext->m_TrackerAction, FontIcons::FONT_ICON_LIST_TRACK, IsTracked, &Action, BUTTONFLAG_LEFT, ActionCorners, true, TrackerActionColor))
+		if(pUi->DoButton_FontIcon(&pPopupContext->m_TrackerAction, FontIcon::RC_LIST_TRACK, IsTracked, &Action, BUTTONFLAG_LEFT, ActionCorners, true, TrackerActionColor))
 		{
 			if(IsTracked)
 			{
@@ -1204,7 +1204,7 @@ CUi::EPopupMenuFunctionResult CScoreboard::CScoreboardPopupContext::Render(void 
 		const bool IsInTeamList = pScoreboard->GameClient()->m_RClient.IsInWarlist(Client.ClientId(), 2);
 		ColorRGBA TeamActionColor = pUi->HotItem() == &pPopupContext->m_TeamAction ? IsInTeamList ? ColorRGBA(1.0f, 0.42f, 0.42f, 0.8f * pUi->ButtonColorMul(&pPopupContext->m_TeamAction)) : ColorRGBA(0.53f, 0.78f, 0.53f, 0.8f * pUi->ButtonColorMul(&pPopupContext->m_TeamAction)) :
 								IsInTeamList ? ColorRGBA(0.53f, 0.78f, 0.53f, 0.8f) : ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f);
-		if(pUi->DoButton_FontIcon(&pPopupContext->m_TeamAction, FontIcons::FONT_ICON_USERS, IsInTeamList, &Action, BUTTONFLAG_LEFT, ActionCorners, true, TeamActionColor))
+		if(pUi->DoButton_FontIcon(&pPopupContext->m_TeamAction, FontIcon::ICON_USERS, IsInTeamList, &Action, BUTTONFLAG_LEFT, ActionCorners, true, TeamActionColor))
 		{
 			if(IsInTeamList)
 			{
@@ -1223,7 +1223,7 @@ CUi::EPopupMenuFunctionResult CScoreboard::CScoreboardPopupContext::Render(void 
 		const bool IsInWarList = pScoreboard->GameClient()->m_RClient.IsInWarlist(Client.ClientId(), 1);
 		ColorRGBA WarActionColor = pUi->HotItem() == &pPopupContext->m_WarAction ? IsInWarList ? ColorRGBA(0.53f, 0.78f, 0.53f, 0.8f * pUi->ButtonColorMul(&pPopupContext->m_TrackerAction)) : ColorRGBA(1.0f, 0.42f, 0.42f, 0.8f * pUi->ButtonColorMul(&pPopupContext->m_TrackerAction)) :
 								IsInWarList ? ColorRGBA(1.0f, 0.42f, 0.42f, 0.8f) : ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f);
-		if(pUi->DoButton_FontIcon(&pPopupContext->m_WarAction, FontIcons::FONT_ICON_PERSON_RIFLE, IsInTeamList, &Action, BUTTONFLAG_LEFT, ActionCorners, true, WarActionColor))
+		if(pUi->DoButton_FontIcon(&pPopupContext->m_WarAction, FontIcon::RC_PERSON_RIFLE, IsInTeamList, &Action, BUTTONFLAG_LEFT, ActionCorners, true, WarActionColor))
 		{
 			if(IsInWarList)
 			{
