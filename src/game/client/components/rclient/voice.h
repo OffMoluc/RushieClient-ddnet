@@ -35,8 +35,10 @@ struct SRClientVoiceConfigSnapshot
 	int m_RiVoiceRadius = 0;
 	int m_RiVoiceVolume = 0;
 	int m_RiVoiceIgnoreDistance = 0;
+	int m_RiVoiceGroupGlobal = 0;
 	int m_RiVoiceListMode = 0;
 	int m_RiVoiceDebug = 0;
+	int m_RiVoiceGroupMode = 0;
 	int m_ClShowOthers = 0;
 	uint32_t m_RiVoiceTokenHash = 0;
 	char m_aRiVoiceWhitelist[512] = {};
@@ -126,6 +128,7 @@ class CRClientVoice
 	uint16_t m_Sequence = 0;
 	std::atomic<uint32_t> m_ContextHash = 0;
 	int64_t m_LastKeepalive = 0;
+	uint32_t m_LastTokenHashSent = 0;
 
 	std::thread m_Worker;
 	std::atomic<bool> m_WorkerStop = false;

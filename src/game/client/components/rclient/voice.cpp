@@ -130,6 +130,41 @@ static constexpr int VOICE_FRAME_BYTES = VOICE_FRAME_SAMPLES * sizeof(int16_t);
 static constexpr int VOICE_MAX_PACKET = 1200;
 static constexpr int VOICE_HEADER_SIZE = sizeof(VOICE_MAGIC) + 1 + 1 + 2 + 4 + 4 + 2 + 2 + 4 + 4;
 static constexpr int VOICE_MAX_PAYLOAD = VOICE_MAX_PACKET - VOICE_HEADER_SIZE;
+static constexpr uint32_t VOICE_GROUP_MASK = 0x3fffffff;
+static constexpr uint32_t VOICE_MODE_SHIFT = 30;
+static constexpr uint32_t VOICE_MODE_MASK = 0x3u;
+
+static uint32_t VoicePackToken(uint32_t GroupHash, uint32_t Mode)
+{
+	return (GroupHash & VOICE_GROUP_MASK) | ((Mode & VOICE_MODE_MASK) << VOICE_MODE_SHIFT);
+}
+
+static uint32_t VoiceTokenGroup(uint32_t TokenHash)
+{
+	return TokenHash & VOICE_GROUP_MASK;
+}
+
+static uint32_t VoiceTokenMode(uint32_t TokenHash)
+{
+	return (TokenHash >> VOICE_MODE_SHIFT) & VOICE_MODE_MASK;
+}
+
+static bool VoiceSenderTxAll(uint32_t Mode)
+{
+	return Mode == 0 || Mode == 3;
+}
+
+static bool VoiceReceiverRxAll(uint32_t Mode)
+{
+	return Mode == 0 || Mode == 2;
+}
+
+static bool VoiceShouldHear(uint32_t SenderGroup, uint32_t SenderMode, uint32_t ReceiverGroup, uint32_t ReceiverMode)
+{
+	if(VoiceSenderTxAll(SenderMode) && VoiceReceiverRxAll(ReceiverMode))
+		return true;
+	return SenderGroup == ReceiverGroup;
+}
 
 static void WriteU16(uint8_t *pBuf, uint16_t Value)
 {
@@ -773,38 +808,38 @@ void CRClientVoice::ProcessCapture()
 		return;
 
 	const int64_t Now = time_get();
-	if(!m_PttActive.load())
+	const bool TokenChanged = Config.m_RiVoiceTokenHash != m_LastTokenHashSent;
+	const bool NeedKeepalive = m_LastKeepalive == 0 || Now - m_LastKeepalive > time_freq() * 2;
+	if(TokenChanged || (!m_PttActive.load() && NeedKeepalive))
 	{
-		if(m_LastKeepalive == 0 || Now - m_LastKeepalive > time_freq() * 2)
+		NETADDR ServerAddrLocal = NETADDR_ZEROED;
 		{
-			NETADDR ServerAddrLocal = NETADDR_ZEROED;
-			{
-				std::lock_guard<std::mutex> Guard(m_ServerAddrMutex);
-				ServerAddrLocal = m_ServerAddr;
-			}
-			uint8_t aPacket[VOICE_MAX_PACKET];
-			size_t Offset = 0;
-			mem_copy(aPacket + Offset, VOICE_MAGIC, sizeof(VOICE_MAGIC));
-			Offset += sizeof(VOICE_MAGIC);
-			aPacket[Offset++] = VOICE_VERSION;
-			aPacket[Offset++] = VOICE_TYPE_PING;
-			WriteU16(aPacket + Offset, 0);
-			Offset += sizeof(uint16_t);
-			WriteU32(aPacket + Offset, m_ContextHash.load());
-			Offset += sizeof(uint32_t);
-			WriteU32(aPacket + Offset, Config.m_RiVoiceTokenHash);
-			Offset += sizeof(uint32_t);
-			WriteU16(aPacket + Offset, 0);
-			Offset += sizeof(uint16_t);
-			WriteU16(aPacket + Offset, m_Sequence++);
-			Offset += sizeof(uint16_t);
-			WriteFloat(aPacket + Offset, 0.0f);
-			Offset += sizeof(float);
-			WriteFloat(aPacket + Offset, 0.0f);
-			Offset += sizeof(float);
-			net_udp_send(m_Socket, &ServerAddrLocal, aPacket, (int)Offset);
-			m_LastKeepalive = Now;
+			std::lock_guard<std::mutex> Guard(m_ServerAddrMutex);
+			ServerAddrLocal = m_ServerAddr;
 		}
+		uint8_t aPacket[VOICE_MAX_PACKET];
+		size_t Offset = 0;
+		mem_copy(aPacket + Offset, VOICE_MAGIC, sizeof(VOICE_MAGIC));
+		Offset += sizeof(VOICE_MAGIC);
+		aPacket[Offset++] = VOICE_VERSION;
+		aPacket[Offset++] = VOICE_TYPE_PING;
+		WriteU16(aPacket + Offset, 0);
+		Offset += sizeof(uint16_t);
+		WriteU32(aPacket + Offset, m_ContextHash.load());
+		Offset += sizeof(uint32_t);
+		WriteU32(aPacket + Offset, Config.m_RiVoiceTokenHash);
+		Offset += sizeof(uint32_t);
+		WriteU16(aPacket + Offset, 0);
+		Offset += sizeof(uint16_t);
+		WriteU16(aPacket + Offset, m_Sequence++);
+		Offset += sizeof(uint16_t);
+		WriteFloat(aPacket + Offset, 0.0f);
+		Offset += sizeof(float);
+		WriteFloat(aPacket + Offset, 0.0f);
+		Offset += sizeof(float);
+		net_udp_send(m_Socket, &ServerAddrLocal, aPacket, (int)Offset);
+		m_LastKeepalive = Now;
+		m_LastTokenHashSent = Config.m_RiVoiceTokenHash;
 	}
 
 	if(!m_PttActive.load())
@@ -939,7 +974,12 @@ void CRClientVoice::ProcessIncoming()
 			s_RxDropContext++;
 			continue;
 		}
-		if(Config.m_RiVoiceTokenHash != 0 && TokenHash != Config.m_RiVoiceTokenHash)
+		const uint32_t LocalToken = Config.m_RiVoiceTokenHash;
+		const uint32_t LocalGroup = VoiceTokenGroup(LocalToken);
+		const uint32_t LocalMode = VoiceTokenMode(LocalToken);
+		const uint32_t SenderGroup = VoiceTokenGroup(TokenHash);
+		const uint32_t SenderMode = VoiceTokenMode(TokenHash);
+		if(!VoiceShouldHear(SenderGroup, SenderMode, LocalGroup, LocalMode))
 			continue;
 		if(SenderId >= MAX_CLIENTS)
 			continue;
@@ -979,15 +1019,17 @@ void CRClientVoice::ProcessIncoming()
 			continue;
 
 		const vec2 SenderPos = vec2(PosX, PosY);
+		const bool SameGroup = LocalGroup != 0 && SenderGroup == LocalGroup;
+		const bool IgnoreDistance = Config.m_RiVoiceIgnoreDistance || (Config.m_RiVoiceGroupGlobal && SameGroup);
 		const float Radius = std::max(1, Config.m_RiVoiceRadius) * 32.0f;
 		const float Dist = distance(LocalPos, SenderPos);
-		if(!Config.m_RiVoiceIgnoreDistance && Dist > Radius)
+		if(!IgnoreDistance && Dist > Radius)
 		{
 			s_RxDropRadius++;
 			continue;
 		}
 
-		const float RadiusFactor = Config.m_RiVoiceIgnoreDistance ? 1.0f : (1.0f - (Dist / Radius));
+		const float RadiusFactor = IgnoreDistance ? 1.0f : (1.0f - (Dist / Radius));
 		float Volume = std::clamp(RadiusFactor * (Config.m_RiVoiceVolume / 100.0f), 0.0f, 2.0f);
 		if(Volume <= 0.0f)
 			continue;
@@ -1082,10 +1124,14 @@ void CRClientVoice::UpdateConfigSnapshot()
 	m_ConfigSnapshot.m_RiVoiceRadius = g_Config.m_RiVoiceRadius;
 	m_ConfigSnapshot.m_RiVoiceVolume = g_Config.m_RiVoiceVolume;
 	m_ConfigSnapshot.m_RiVoiceIgnoreDistance = g_Config.m_RiVoiceIgnoreDistance;
+	m_ConfigSnapshot.m_RiVoiceGroupGlobal = g_Config.m_RiVoiceGroupGlobal;
 	m_ConfigSnapshot.m_RiVoiceListMode = g_Config.m_RiVoiceListMode;
 	m_ConfigSnapshot.m_RiVoiceDebug = g_Config.m_RiVoiceDebug;
+	m_ConfigSnapshot.m_RiVoiceGroupMode = g_Config.m_RiVoiceGroupMode;
 	m_ConfigSnapshot.m_ClShowOthers = g_Config.m_ClShowOthers;
-	m_ConfigSnapshot.m_RiVoiceTokenHash = g_Config.m_RiVoiceToken[0] != '\0' ? str_quickhash(g_Config.m_RiVoiceToken) : 0;
+	uint32_t GroupHash = g_Config.m_RiVoiceToken[0] != '\0' ? str_quickhash(g_Config.m_RiVoiceToken) : 0;
+	uint32_t Mode = (uint32_t)std::clamp(g_Config.m_RiVoiceGroupMode, 0, 3);
+	m_ConfigSnapshot.m_RiVoiceTokenHash = VoicePackToken(GroupHash, Mode);
 	str_copy(m_ConfigSnapshot.m_aRiVoiceWhitelist, g_Config.m_RiVoiceWhitelist, sizeof(m_ConfigSnapshot.m_aRiVoiceWhitelist));
 	str_copy(m_ConfigSnapshot.m_aRiVoiceBlacklist, g_Config.m_RiVoiceBlacklist, sizeof(m_ConfigSnapshot.m_aRiVoiceBlacklist));
 	str_copy(m_ConfigSnapshot.m_aRiVoiceMute, g_Config.m_RiVoiceMute, sizeof(m_ConfigSnapshot.m_aRiVoiceMute));

@@ -744,3 +744,9 @@ Normal
 
 Show frozen HUD only for warlist teammates
 == Показывать худ замороженных только для тимлиста
+
+Group mode
+== Режим группы
+
+Group token
+== Токен группы

@@ -1308,6 +1308,26 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceIgnoreDistance, RCLocalize("Ignore distance"), &g_Config.m_RiVoiceIgnoreDistance, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceGroupGlobal, RCLocalize("Hear group members everywhere"), &g_Config.m_RiVoiceGroupGlobal, &Column, LineSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	static SDropDownSimple s_VoiceGroupModeDrop;
+	g_Config.m_RiVoiceGroupMode = DoSimpleDropDown(
+		Ui(),
+		Column,
+		RCLocalize("Group mode"),
+		g_Config.m_RiVoiceGroupMode,
+		{"Hear All / Send to All", "Hear Group / Send to Group", "Hear All / Send to Group", "Hear Group / Send to All"},
+		"Voice group mode",
+		s_VoiceGroupModeDrop);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Label, &Column);
+	Ui()->DoLabel(&Label, RCLocalize("Group token"), FontSize, TEXTALIGN_ML);
+	Column.HSplitTop(MarginExtraSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	static CLineInput s_VoiceGroupToken(g_Config.m_RiVoiceToken, sizeof(g_Config.m_RiVoiceToken));
+	s_VoiceGroupToken.SetEmptyText(RCLocalize("Group token"));
+	Ui()->DoEditBox(&s_VoiceGroupToken, &Button, FontSize);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceShowWhenActive, RCLocalize("Show when microphone active"), &g_Config.m_RiVoiceShowWhenActive, &Column, LineSize);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_RiVoiceStereo, RCLocalize("Stereo output (pan left/right)"), &g_Config.m_RiVoiceStereo, &Column, LineSize);
