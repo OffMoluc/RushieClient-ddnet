@@ -756,3 +756,6 @@ FastInput version:
 
 Hear group members everywhere
 == Слышать участников группы везде
+
+Microphone volume
+== Громкость микрофона

@@ -1428,6 +1428,9 @@ void CMenus::RenderSettingsRushieSettings(CUIRect MainView)
 	Column.HSplitTop(LineSize, &Button, &Column);
 	Ui()->DoScrollbarOption(&g_Config.m_RiVoiceVolume, &g_Config.m_RiVoiceVolume, &Button, RCLocalize("Voice volume"), 0, 200);
 	Column.HSplitTop(MarginSmall, nullptr, &Column);
+	Column.HSplitTop(LineSize, &Button, &Column);
+	Ui()->DoScrollbarOption(&g_Config.m_RiVoiceMicVolume, &g_Config.m_RiVoiceMicVolume, &Button, RCLocalize("Microphone volume"), 0, 300);
+	Column.HSplitTop(MarginSmall, nullptr, &Column);
 
 	static char s_aVoiceNameVolumeName[32];
 	static int s_VoiceNameVolumePercent = 100;

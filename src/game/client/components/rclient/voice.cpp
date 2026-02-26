@@ -217,6 +217,20 @@ static float SanitizeFloat(float Value)
 	return Value;
 }
 
+static void ApplyMicGain(const SRClientVoiceConfigSnapshot &Config, int16_t *pSamples, int Count)
+{
+	const float Gain = std::clamp(Config.m_RiVoiceMicVolume / 100.0f, 0.0f, 2.0f);
+	if(Gain == 1.0f)
+		return;
+
+	for(int i = 0; i < Count; i++)
+	{
+		const float Out = pSamples[i] * Gain;
+		const int Sample = (int)std::clamp(Out, -32768.0f, 32767.0f);
+		pSamples[i] = (int16_t)Sample;
+	}
+}
+
 static void ApplyHpfCompressor(const SRClientVoiceConfigSnapshot &Config, int16_t *pSamples, int Count, float &PrevIn, float &PrevOut, float &Env)
 {
 	if(!Config.m_RiVoiceFilterEnable)
@@ -898,6 +912,7 @@ void CRClientVoice::ProcessCapture()
 	{
 		int16_t aPcm[VOICE_FRAME_SAMPLES];
 		SDL_DequeueAudio(m_CaptureDevice, aPcm, VOICE_FRAME_BYTES);
+		ApplyMicGain(Config, aPcm, VOICE_FRAME_SAMPLES);
 		ApplyHpfCompressor(Config, aPcm, VOICE_FRAME_SAMPLES, m_HpfPrevIn, m_HpfPrevOut, m_CompEnv);
 
 		const int EncSize = opus_encode(m_pEncoder, aPcm, VOICE_FRAME_SAMPLES, aPayload, (int)sizeof(aPayload));
@@ -1175,6 +1190,7 @@ void CRClientVoice::UpdateConfigSnapshot()
 	m_ConfigSnapshot.m_RiVoiceStereoWidth = g_Config.m_RiVoiceStereoWidth;
 	m_ConfigSnapshot.m_RiVoiceRadius = g_Config.m_RiVoiceRadius;
 	m_ConfigSnapshot.m_RiVoiceVolume = g_Config.m_RiVoiceVolume;
+	m_ConfigSnapshot.m_RiVoiceMicVolume = g_Config.m_RiVoiceMicVolume;
 	m_ConfigSnapshot.m_RiVoiceIgnoreDistance = g_Config.m_RiVoiceIgnoreDistance;
 	m_ConfigSnapshot.m_RiVoiceGroupGlobal = g_Config.m_RiVoiceGroupGlobal;
 	m_ConfigSnapshot.m_RiVoiceListMode = g_Config.m_RiVoiceListMode;
