@@ -162,6 +162,7 @@ class CRClientVoice
 	void PushPeerFrame(int PeerId, const int16_t *pPcm, int Samples, float LeftGain, float RightGain);
 	void MixAudio(int16_t *pOut, int Samples, int OutputChannels);
 	void ClearPeerFrames();
+	void ResetPeer(SVoicePeer &Peer);
 	static void SDLAudioCallback(void *pUserData, Uint8 *pStream, int Len);
 	const char *FindDeviceName(bool Capture, const char *pDesired) const;
 	void StartWorker();

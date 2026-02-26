@@ -623,6 +623,42 @@ void CRClientVoice::ClearPeerFrames()
 		SDL_UnlockAudioDevice(m_OutputDevice);
 }
 
+void CRClientVoice::ResetPeer(SVoicePeer &Peer)
+{
+	if(m_OutputDevice)
+		SDL_LockAudioDevice(m_OutputDevice);
+	Peer.m_FrameHead = 0;
+	Peer.m_FrameTail = 0;
+	Peer.m_FrameCount = 0;
+	Peer.m_FrameReadPos = 0;
+	if(m_OutputDevice)
+		SDL_UnlockAudioDevice(m_OutputDevice);
+
+	for(auto &Pkt : Peer.m_aPackets)
+	{
+		Pkt.m_Valid = false;
+		Pkt.m_Size = 0;
+		Pkt.m_Seq = 0;
+		Pkt.m_LeftGain = 1.0f;
+		Pkt.m_RightGain = 1.0f;
+	}
+	Peer.m_QueuedPackets = 0;
+	Peer.m_LastSeq = 0;
+	Peer.m_HasSeq = false;
+	Peer.m_HasNextSeq = false;
+	Peer.m_NextSeq = 0;
+	Peer.m_HasLastRecvSeq = false;
+	Peer.m_LastRecvSeq = 0;
+	Peer.m_LastRecvTime = 0;
+	Peer.m_JitterMs = 0.0f;
+	Peer.m_TargetFrames = 3;
+	Peer.m_LastGainLeft = 1.0f;
+	Peer.m_LastGainRight = 1.0f;
+	Peer.m_LossEwma = 0.0f;
+	if(Peer.m_pDecoder)
+		opus_decoder_ctl(Peer.m_pDecoder, OPUS_RESET_STATE);
+}
+
 const char *CRClientVoice::FindDeviceName(bool Capture, const char *pDesired) const
 {
 	if(!pDesired || pDesired[0] == '\0')
@@ -1050,6 +1086,22 @@ void CRClientVoice::ProcessIncoming()
 
 		SVoicePeer &Peer = m_aPeers[SenderId];
 		const int64_t Now = time_get();
+		bool ResetStream = false;
+		if(Peer.m_LastRecvTime != 0)
+		{
+			const int64_t Gap = Now - Peer.m_LastRecvTime;
+			if(Gap > time_freq() * 2)
+				ResetStream = true;
+			else if(Peer.m_HasLastRecvSeq)
+			{
+				const int Delta = SeqDelta(Sequence, Peer.m_LastRecvSeq);
+				if(Delta > SVoicePeer::MAX_JITTER_PACKETS * 8)
+					ResetStream = true;
+			}
+		}
+		if(ResetStream)
+			ResetPeer(Peer);
+
 		if(Peer.m_LastRecvTime != 0)
 		{
 			const float DeltaMs = (float)((Now - Peer.m_LastRecvTime) * 1000.0 / (double)time_freq());
