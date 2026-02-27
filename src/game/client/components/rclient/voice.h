@@ -104,6 +104,7 @@ class CRClientVoice
 	NETADDR m_ServerAddr = NETADDR_ZEROED;
 	std::atomic<bool> m_ServerAddrValid = false;
 	char m_aServerAddrStr[128] = {0};
+	int64_t m_LastServerResolveAttempt = 0;
 
 	SDL_AudioDeviceID m_CaptureDevice = 0;
 	SDL_AudioDeviceID m_OutputDevice = 0;

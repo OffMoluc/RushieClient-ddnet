@@ -829,6 +829,7 @@ void CRClientVoice::Shutdown()
 	ClearPeerFrames();
 	m_ServerAddrValid.store(false);
 	m_aServerAddrStr[0] = '\0';
+	m_LastServerResolveAttempt = 0;
 	m_HpfPrevIn = 0.0f;
 	m_HpfPrevOut = 0.0f;
 	m_CompEnv = 0.0f;
@@ -841,13 +842,21 @@ void CRClientVoice::Shutdown()
 
 void CRClientVoice::UpdateServerAddr()
 {
-	if(str_comp(m_aServerAddrStr, g_Config.m_RiVoiceServer) == 0)
+	const int64_t Now = time_get();
+	const bool AddrChanged = str_comp(m_aServerAddrStr, g_Config.m_RiVoiceServer) != 0;
+	const bool ShouldRetry = !m_ServerAddrValid.load() && (m_LastServerResolveAttempt == 0 || Now - m_LastServerResolveAttempt > time_freq() * 5);
+	if(!AddrChanged && !ShouldRetry)
 		return;
 
-	str_copy(m_aServerAddrStr, g_Config.m_RiVoiceServer, sizeof(m_aServerAddrStr));
-	m_ServerAddrValid.store(false);
+	if(AddrChanged)
+	{
+		str_copy(m_aServerAddrStr, g_Config.m_RiVoiceServer, sizeof(m_aServerAddrStr));
+		m_ServerAddrValid.store(false);
+	}
 	if(m_aServerAddrStr[0] == '\0')
 		return;
+
+	m_LastServerResolveAttempt = Now;
 
 	NETADDR NewAddr = NETADDR_ZEROED;
 	if(net_addr_from_str(&NewAddr, m_aServerAddrStr) == 0)
@@ -868,7 +877,7 @@ void CRClientVoice::UpdateServerAddr()
 		return;
 	}
 
-	if(net_host_lookup(aHost, &NewAddr, NETTYPE_ALL) == 0)
+	if(net_host_lookup(aHost, &NewAddr, NETTYPE_IPV4) == 0 || net_host_lookup(aHost, &NewAddr, NETTYPE_IPV6) == 0)
 	{
 		NewAddr.port = Port;
 		{
