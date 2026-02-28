@@ -937,6 +937,7 @@ void CRClientVoice::UpdateClientSnapshot()
 		m_aClientPosSnap[i] = m_pGameClient->m_aClients[i].m_RenderPos;
 		str_copy(m_aClientNameSnap[i].data(), m_pGameClient->m_aClients[i].m_aName, MAX_NAME_LENGTH);
 		m_aClientOtherTeamSnap[i] = m_pGameClient->IsOtherTeam(i) ? 1 : 0;
+		m_aClientActiveSnap[i] = m_pGameClient->m_aClients[i].m_Active ? 1 : 0;
 	}
 }
 
@@ -1147,6 +1148,7 @@ void CRClientVoice::ProcessIncoming()
 		vec2 LocalPos = vec2(0.0f, 0.0f);
 		char aSenderName[MAX_NAME_LENGTH];
 		bool SenderOtherTeam = false;
+		bool SenderActive = false;
 		{
 			std::lock_guard<std::mutex> Guard(m_SnapshotMutex);
 			if(!m_OnlineSnap)
@@ -1157,12 +1159,21 @@ void CRClientVoice::ProcessIncoming()
 			LocalPos = m_aClientPosSnap[LocalId];
 			str_copy(aSenderName, m_aClientNameSnap[SenderId].data(), sizeof(aSenderName));
 			SenderOtherTeam = m_aClientOtherTeamSnap[SenderId] != 0;
+			SenderActive = m_aClientActiveSnap[SenderId] != 0;
 		}
 
 		if(SenderId == LocalId)
 			continue;
-		if(Config.m_ClShowOthers != SHOW_OTHERS_ON && SenderOtherTeam)
-			continue;
+		if(Config.m_RiVoiceVisibilityMode == 0)
+		{
+			if(!SenderActive)
+				continue;
+		}
+		else
+		{
+			if(SenderOtherTeam)
+				continue;
+		}
 		const char *pSenderName = aSenderName;
 		if(VoiceListMatch(Config.m_aRiVoiceMute, pSenderName))
 			continue;
@@ -1301,6 +1312,7 @@ void CRClientVoice::UpdateConfigSnapshot()
 	m_ConfigSnapshot.m_RiVoiceMicVolume = g_Config.m_RiVoiceMicVolume;
 	m_ConfigSnapshot.m_RiVoiceIgnoreDistance = g_Config.m_RiVoiceIgnoreDistance;
 	m_ConfigSnapshot.m_RiVoiceGroupGlobal = g_Config.m_RiVoiceGroupGlobal;
+	m_ConfigSnapshot.m_RiVoiceVisibilityMode = g_Config.m_RiVoiceVisibilityMode;
 	m_ConfigSnapshot.m_RiVoiceListMode = g_Config.m_RiVoiceListMode;
 	m_ConfigSnapshot.m_RiVoiceDebug = g_Config.m_RiVoiceDebug;
 	m_ConfigSnapshot.m_RiVoiceGroupMode = g_Config.m_RiVoiceGroupMode;
