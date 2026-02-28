@@ -937,7 +937,7 @@ void CRClientVoice::UpdateClientSnapshot()
 		m_aClientPosSnap[i] = m_pGameClient->m_aClients[i].m_RenderPos;
 		str_copy(m_aClientNameSnap[i].data(), m_pGameClient->m_aClients[i].m_aName, MAX_NAME_LENGTH);
 		m_aClientOtherTeamSnap[i] = m_pGameClient->IsOtherTeam(i) ? 1 : 0;
-		m_aClientActiveSnap[i] = m_pGameClient->m_aClients[i].m_Active ? 1 : 0;
+		m_aClientActiveSnap[i] = m_pGameClient->m_Snap.m_aCharacters[i].m_Active ? 1 : 0;
 	}
 }
 
@@ -1182,7 +1182,7 @@ void CRClientVoice::ProcessIncoming()
 			if(!SenderActive)
 				continue;
 		}
-		else
+		else if(Config.m_RiVoiceVisibilityMode == 1)
 		{
 			if(SenderOtherTeam)
 				continue;
