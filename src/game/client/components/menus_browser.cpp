@@ -1860,8 +1860,6 @@ void CMenus::RenderServerbrowserFriends(CUIRect View)
                 }
             }
 
-
-
             // total
             for(size_t i = 0; i < m_vPlayerSearchResults.size(); ++i)
             {
@@ -1917,7 +1915,6 @@ void CMenus::RenderServerbrowserFriends(CUIRect View)
                     str_format(aBufInfo, sizeof(aBufInfo), "%s | %s", Result.m_pServer->m_aMap, Result.m_pServer->m_aGameType);
 
                 (void)Ui()->DoLabel(&InfoLabel, aBufInfo, FontSize - 2.0f, TEXTALIGN_ML);
-
             	// tee
             	if(Result.m_pClient->m_aSkin[0] != '\0')
             	{
@@ -1936,8 +1933,7 @@ void CMenus::RenderServerbrowserFriends(CUIRect View)
             		RenderTools()->RenderTee(pIdleState, &TeeInfo, EMOTE_NORMAL, vec2(1.0f, 0.0f), TeeRenderPos);
             	}
             }
-
-            // space
+        	// space
         	CUIRect Space;
         	List.HSplitTop(SpacingH, &Space, &List);
         	s_ScrollRegion.AddRect(Space);
