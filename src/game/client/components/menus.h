@@ -259,6 +259,17 @@ protected:
 		SORT_DATE,
 	};
 
+	struct CPlayerSearchResult
+	{
+		const struct CServerInfo *m_pServer;
+		const struct CServerInfo::CClient *m_pClient;
+	};
+	bool m_PlayerSearchExpanded = false;
+	char m_aPlayerSearchQuery[64] = {0};
+	CLineInput m_PlayerSearchInput;
+	float m_PlayerSearchOffset = 0.0f;
+	std::vector<CPlayerSearchResult> m_vPlayerSearchResults;
+
 	class CDemoItem
 	{
 	public:

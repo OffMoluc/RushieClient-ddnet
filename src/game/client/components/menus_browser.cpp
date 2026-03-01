@@ -1732,6 +1732,218 @@ void CMenus::RenderServerbrowserFriends(CUIRect View)
 		}
 	}
 
+// search player
+    {
+        CUIRect SearchHeader, SearchIcon, SearchLabel;
+
+
+        // title
+        List.HSplitTop(ms_ListheaderHeight, &SearchHeader, &List);
+        s_ScrollRegion.AddRect(SearchHeader);
+
+        SearchHeader.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, Ui()->HotItem() == &m_PlayerSearchExpanded ? 0.4f : 0.25f), IGraphics::CORNER_ALL, 5.0f);
+        SearchHeader.VSplitLeft(SearchHeader.h, &SearchIcon, &SearchLabel);
+        SearchIcon.Margin(2.0f, &SearchIcon);
+
+        TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
+        TextRender()->TextColor(Ui()->HotItem() == &m_PlayerSearchExpanded ? TextRender()->DefaultTextColor() : ColorRGBA(0.6f, 0.6f, 0.6f, 1.0f));
+
+        (void)Ui()->DoLabel(&SearchIcon, m_PlayerSearchExpanded ? FontIcon::SQUARE_MINUS : FontIcon::SQUARE_PLUS, SearchIcon.h * CUi::ms_FontmodHeight, TEXTALIGN_MC);
+
+        TextRender()->TextColor(TextRender()->DefaultTextColor());
+        TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
+
+        char aSearchTitle[128];
+        str_format(aSearchTitle, sizeof(aSearchTitle), "Поиск игрока (%d)", (int)m_vPlayerSearchResults.size());
+
+        (void)Ui()->DoLabel(&SearchLabel, aSearchTitle, FontSize, TEXTALIGN_ML);
+
+        if(Ui()->DoButtonLogic(&m_PlayerSearchExpanded, 0, &SearchHeader, BUTTONFLAG_LEFT))
+        {
+            m_PlayerSearchExpanded = !m_PlayerSearchExpanded;
+        }
+
+		CUIRect BottomMargin;
+		List.HSplitTop(SpacingH, &BottomMargin, &List);
+		s_ScrollRegion.AddRect(BottomMargin);
+
+        // content
+        if(m_PlayerSearchExpanded)
+        {
+            {
+                CUIRect Space, SearchArea;
+                List.HSplitTop(SpacingH, &Space, &List);
+                s_ScrollRegion.AddRect(Space);
+
+                List.HSplitTop(20.0f, &SearchArea, &List);
+                s_ScrollRegion.AddRect(SearchArea);
+
+                SearchArea.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.25f), IGraphics::CORNER_ALL, 5.0f);
+
+                CUIRect SearchIcon, SearchLabel, ClearBtn, EditBox;
+                SearchArea.VSplitLeft(25.0f, &SearchIcon, &EditBox);
+                EditBox.VSplitLeft(55.0f, &SearchLabel, &EditBox);
+                EditBox.VSplitRight(20.0f, &EditBox, &ClearBtn);
+
+                // icon
+                CUIRect AdjustedIconRect = SearchIcon;
+                AdjustedIconRect.y -= 1.0f;
+
+                TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
+                TextRender()->TextColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f));
+                (void)Ui()->DoLabel(&AdjustedIconRect, FontIcon::MAGNIFYING_GLASS, FontSize, TEXTALIGN_MC);
+
+                // text search
+                TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
+                TextRender()->TextColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f));
+                (void)Ui()->DoLabel(&SearchLabel, "Поиск:", FontSize - 1.0f, TEXTALIGN_ML);
+
+                // cancel button
+                static CButtonContainer s_ClearButtonID;
+                TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
+                TextRender()->TextColor(Ui()->HotItem() == &s_ClearButtonID ? ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f) : ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f));
+
+                bool SearchUpdated = false;
+                if(Ui()->DoButtonLogic(s_ScrollRegion.RectClipped(ClearBtn) ? nullptr : &s_ClearButtonID, 0, &ClearBtn, BUTTONFLAG_LEFT))
+                {
+                    m_aPlayerSearchQuery[0] = '\0';
+                    m_PlayerSearchInput.Clear();
+                    SearchUpdated = true;
+                }
+                (void)Ui()->DoLabel(&ClearBtn, FontIcon::XMARK, FontSize, TEXTALIGN_MC);
+
+                TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
+
+                std::vector<STextColorSplit> vColorSplits;
+
+                EditBox.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.5f), IGraphics::CORNER_ALL, 5.0f);
+
+                TextRender()->TextColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f));
+
+                m_PlayerSearchInput.SetBuffer(m_aPlayerSearchQuery, sizeof(m_aPlayerSearchQuery));
+
+                if(Ui()->DoEditBox(s_ScrollRegion.RectClipped(EditBox) ? nullptr : &m_PlayerSearchInput, &EditBox, FontSize - 1.0f, IGraphics::CORNER_ALL, vColorSplits))
+                {
+                    if(str_length(m_aPlayerSearchQuery) > 15)
+                        m_aPlayerSearchQuery[15] = '\0';
+
+                    SearchUpdated = true;
+                }
+
+                TextRender()->TextColor(TextRender()->DefaultTextColor());
+
+                // search logic
+                if(SearchUpdated)
+                {
+                    m_vPlayerSearchResults.clear();
+                    if(m_aPlayerSearchQuery[0] != '\0')
+                    {
+                        int NumServers = ServerBrowser()->NumSortedServers();
+                        for(int i = 0; i < NumServers; i++)
+                        {
+                            const CServerInfo *pItem = ServerBrowser()->SortedGet(i);
+                            if(!pItem) continue;
+
+                            for(int p = 0; p < pItem->m_NumClients; p++)
+                            {
+                                if(str_find_nocase(pItem->m_aClients[p].m_aName, m_aPlayerSearchQuery))
+                                {
+                                    CPlayerSearchResult Result;
+                                    Result.m_pServer = pItem;
+                                    Result.m_pClient = &pItem->m_aClients[p];
+                                    m_vPlayerSearchResults.push_back(Result);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+
+            // total
+            for(size_t i = 0; i < m_vPlayerSearchResults.size(); ++i)
+            {
+                CUIRect Space;
+                List.HSplitTop(SpacingH, &Space, &List);
+                s_ScrollRegion.AddRect(Space);
+
+                CUIRect Rect;
+                auto &Result = m_vPlayerSearchResults[i];
+
+                List.HSplitTop(11.0f + 10.0f + 2 * 2.0f + 1.0f + 10.0f, &Rect, &List);
+                s_ScrollRegion.AddRect(Rect);
+
+                if(s_ScrollRegion.RectClipped(Rect))
+                    continue;
+
+                static CButtonContainer s_ResID[100];
+                const void* pId = &s_ResID[i % 100];
+                const bool Inside = Ui()->HotItem() == pId;
+
+                if(Ui()->DoButtonLogic(pId, 0, &Rect, BUTTONFLAG_LEFT))
+                {
+                    Client()->Connect(Result.m_pServer->m_aAddress);
+                }
+
+                GameClient()->m_Tooltips.DoToolTip(pId, &Rect, Localize("Click to join player's server."));
+
+                const ColorRGBA Color = PlayerBackgroundColor(false, false, false, false, Inside);
+                Rect.Draw(Color, IGraphics::CORNER_ALL, 5.0f);
+                Rect.Margin(2.0f, &Rect);
+
+                CUIRect NameLabel, ClanLabel, InfoLabel, Skin;
+
+                Rect.HSplitBottom(10.0f, &Rect, &InfoLabel);
+                Rect.HSplitTop(11.0f + 10.0f, &Rect, nullptr);
+
+                Rect.VSplitLeft(Rect.h, &Skin, &Rect);
+                Rect.VSplitLeft(2.0f, nullptr, &Rect);
+
+                Rect.HSplitTop(11.0f, &NameLabel, &ClanLabel);
+
+                (void)Ui()->DoLabel(&NameLabel, Result.m_pClient->m_aName, FontSize - 1.0f, TEXTALIGN_ML);
+
+                (void)Ui()->DoLabel(&ClanLabel, Result.m_pClient->m_aClan, FontSize - 2.0f, TEXTALIGN_ML);
+
+                char aBufInfo[128];
+                char aLatency[16];
+                FormatServerbrowserPing(aLatency, Result.m_pServer);
+
+                if(aLatency[0] != '\0')
+                    str_format(aBufInfo, sizeof(aBufInfo), "%s | %s | %s", Result.m_pServer->m_aMap, Result.m_pServer->m_aGameType, aLatency);
+                else
+                    str_format(aBufInfo, sizeof(aBufInfo), "%s | %s", Result.m_pServer->m_aMap, Result.m_pServer->m_aGameType);
+
+                (void)Ui()->DoLabel(&InfoLabel, aBufInfo, FontSize - 2.0f, TEXTALIGN_ML);
+
+            	// tee
+            	if(Result.m_pClient->m_aSkin[0] != '\0')
+            	{
+            		const CTeeRenderInfo TeeInfo = GetTeeRenderInfo(vec2(Skin.w, Skin.h),
+				Result.m_pClient->m_aSkin,
+				0,
+				0,
+				0
+			    );
+
+            		const CAnimState *pIdleState = CAnimState::GetIdle();
+            		vec2 OffsetToMid;
+            		CRenderTools::GetRenderTeeOffsetToRenderedTee(pIdleState, &TeeInfo, OffsetToMid);
+            		const vec2 TeeRenderPos = vec2(Skin.x + Skin.w / 2.0f, Skin.y + Skin.h * 0.55f + OffsetToMid.y);
+
+            		RenderTools()->RenderTee(pIdleState, &TeeInfo, EMOTE_NORMAL, vec2(1.0f, 0.0f), TeeRenderPos);
+            	}
+            }
+
+            // space
+        	CUIRect Space;
+        	List.HSplitTop(SpacingH, &Space, &List);
+        	s_ScrollRegion.AddRect(Space);
+        }
+    }
+
 	// warlist entries
 	{
 		struct SWarBrowserEntry
@@ -1925,6 +2137,8 @@ void CMenus::RenderServerbrowserFriends(CUIRect View)
 			m_pRemoveFriend->FriendState() == IFriends::FRIEND_PLAYER ? m_pRemoveFriend->Name() : m_pRemoveFriend->Clan());
 		PopupConfirm(Localize("Remove friend"), aMessage, Localize("Yes"), Localize("No"), &CMenus::PopupConfirmRemoveFriend);
 	}
+
+
 
 	// add friend
 	if(GameClient()->Friends()->NumFriends() < IFriends::MAX_FRIENDS)
