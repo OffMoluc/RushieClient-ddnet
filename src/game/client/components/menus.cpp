@@ -923,6 +923,7 @@ void CMenus::OnInit()
 	Graphics()->QuadContainerAddSprite(m_DirectionQuadContainerIndex, 0.f, 0.f, 22.f);
 	Graphics()->QuadContainerUpload(m_DirectionQuadContainerIndex);
 
+        // added for the search system in menus_browser.cpp
 	m_PlayerSearchInput.SetBuffer(m_aPlayerSearchQuery, sizeof(m_aPlayerSearchQuery));
 }
 
